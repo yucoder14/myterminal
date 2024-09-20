@@ -94,10 +94,6 @@ I have to invoke multiple key events in order for the renderer to render everyth
 - SOLUTION: find a way to generate a custom event regarding output
     - will be ideal if I can refresh only one keys and where there are outputs to read from pty
     - a separate thread that focuses solely on reading from pty (might be redundant)    
-    - look into how to properly handle idle event (will this going to work? idk) 
-        - the paintEvent should only be responsible for drawing text given coordinates
-        - idle event should be responsible for fetching data from pty and putting them in the buffer
-        - idle event should also set proper coordinates for next characters
-        - key event should capture keys and set proper coordinates depending on keys 
+    - ~~Look into how to properly handle idle event (will this going to work? idk)~~ 
     - look into how to constantly check the pty for available bytes to read 
 
