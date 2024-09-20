@@ -70,9 +70,9 @@ Newest Updates
 
 Data Structure Ideas
 ====================
-Terminal window should be a grid of character cells (custom class)
-To correctly parse ANSI-codes, there needs to be an output buffer
-output buffer will be used for the prompt and the output 
+- Terminal window should be a grid of character cells (custom class)
+- To correctly parse ANSI-codes, there needs to be an output buffer
+- output buffer will be used for the prompt and the output 
 
 What I do not understand
 ========================
