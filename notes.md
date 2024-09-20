@@ -59,9 +59,9 @@ A Modern way to build projects
 
 How to Render Text
 ==================
-As of now, it seems like I need to keep a buffer to keep track of all the characters that were entered. 
+~~As of now, it seems like I need to keep a buffer to keep track of all the characters that were entered.~~I do not have to keep track of input characters, for I just need to send them straight to the pty
 
-Not completely sure yet, but the events seems to be handled in an infinite loop, meaning one paint event will take care of any changes that are made to the buffer(?)
+~~Not completely sure yet, but the events seems to be handled in an infinite loop, meaning one paint event will take care of any changes that are made to the buffer(?)~~Events do get handled in an infinite loop, and paint event can be invoked by Refresh
 
 
 Newest Updates
