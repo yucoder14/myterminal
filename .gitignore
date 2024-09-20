@@ -1,6 +1,6 @@
-terminal.cpp
-terminal.h
-term
-test
+/misc/terminal.cpp
+/misc/terminal.h
+/misc/term
+/misc/test
+/misc/fork.cpp
 a.out
-fork.cpp
