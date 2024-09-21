@@ -9,6 +9,10 @@ public:
 	wxTimer *renderTimer;
 	static constexpr int RenderTimerId = 1114;
 
+	void Render(wxPaintEvent& event);
+	void OnKeyEvent(wxKeyEvent& event);
+
+private:
 	int pty_master;
 	int shell_pid;
 
@@ -17,8 +21,5 @@ public:
 
 	char output_buf[65536]; 
 	int output_line_count;
-
-	void Render(wxPaintEvent& event);
-	void OnKeyEvent(wxKeyEvent& event);
 };
 

@@ -8,6 +8,9 @@
 - [ ] Scrolling 
 - [ ] Resizing Window
 - [ ] Resizing text size
+- [ ] Cursor
+- [ ] Handle Unicode Characters
+- [ ] Run vim properly
 
 # Useful Readings
 https://tldp.org/HOWTO/Text-Terminal-HOWTO-7.html#ss7.2
