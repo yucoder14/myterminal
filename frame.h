@@ -6,7 +6,8 @@ public:
 	MyFrame(const wxString& title);
 
 	wxPanel *panel;
-	wxTimer renderTimer;
+	wxTimer *renderTimer;
+	static constexpr int RenderTimerId = 1114;
 
 	int pty_master;
 	int shell_pid;

@@ -4,6 +4,7 @@
 #include <sys/types.h>
 #include <sys/uio.h>
 #include <string>
+#include <string.h>
 #include <wx/dcbuffer.h>
 #include <wx/wfstream.h>
 using namespace std;
@@ -20,9 +21,7 @@ MyFrame::MyFrame(const wxString& title)
 	panel->Bind(wxEVT_CHAR, &MyFrame::OnKeyEvent, this);
 
 	
-	char name[40];
-	shell_pid = forkpty(&pty_master, name, nullptr, nullptr);
-
+	shell_pid = forkpty(&pty_master, nullptr, nullptr, nullptr);
 	switch (shell_pid) {
 		case -1: 
 			std::cout << "Cannot fork" << std::endl;
@@ -30,10 +29,20 @@ MyFrame::MyFrame(const wxString& title)
 			break;	
 		case 0: 
 			char * argv[] = {NULL};
-			execvp("/opt/homebrew/bin/bash", argv);
+			execvp("/bin/bash", argv);
 	}
-	std::cout << name << std::endl;
 
+	renderTimer = new wxTimer(this, RenderTimerId);
+	this->Bind(wxEVT_TIMER, [this](wxTimerEvent&) {
+		int status;
+		if (waitpid(shell_pid, &status, WNOHANG) == shell_pid) {
+			this->Destroy();
+		}	
+			
+		
+		Refresh();	
+	});	
+	renderTimer->Start(50);
 	CreateStatusBar();
 }	
 
@@ -57,22 +66,19 @@ void MyFrame::Render(wxPaintEvent& WXUNUSED(event)) {
 		char_width = dim.GetWidth();
 	}	
 
-	// find a way to read all the available characters without indefinitely blocking into a temporary buffer
 	int flags = fcntl(pty_master, F_GETFL, 0);
 	fcntl(pty_master, F_SETFL, flags | O_NONBLOCK);
 
 	int i = 0; 
 	int line_count = 0;
 	while(read(pty_master, &output_buf[i], (size_t) 1) != -1) {
-		//dc.DrawText(d, char_x, char_y);
-		//char_x+=char_width;
-		//cout << output_buf[i] << ", " << int(output_buf[i]) << endl;
 		if (output_buf[i] == '\n') {
 			line_count++;
 		} 
 		i++;
 	}
-	output_buf[i] = '\0';
+	output_buf[i] = '\0';	
+
 	if (line_count > 0) {
 		i = 0;
 	}	
@@ -90,7 +96,5 @@ void MyFrame::OnKeyEvent(wxKeyEvent& event) {
 		char_y+=char_height;
 		char_x=0;
 	}	
-
-	Refresh();
 }
 
