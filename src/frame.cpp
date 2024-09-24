@@ -87,6 +87,11 @@ void MyFrame::OnKeyEvent(wxKeyEvent& event) {
 	int keycode = event.GetKeyCode(); 
 	wxLogStatus("Key Event %d", event.GetKeyCode());
 
+	if (keycode == WXK_CONTROL_C) {
+		cout << "Ctrl-C pressed" << endl;
+		return;
+	}
+
 	write(this->pty_master, &keycode, (size_t) 1);	
 	if (keycode == 13) {
 		this->char_y+=this->char_height;

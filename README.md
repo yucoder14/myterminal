@@ -3,6 +3,7 @@
 - [x] spawn a shell; using forkpty, ~~select, fd_set, and fds~~ ended up using fcntl
 - [x] figure out how to send/display keystrokes with wxWidgets
 - [x] have a basic framework before I go crazy
+- [ ] Correctly send typed keys, and signals (right now it crashes when I do Ctrl-C)
 - [ ] figure out how to parse
 - [ ] Set up CMake just for kicks
 - [ ] Scrolling 
