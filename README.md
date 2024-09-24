@@ -17,3 +17,6 @@
 https://tldp.org/HOWTO/Text-Terminal-HOWTO-7.html#ss7.2
 https://poor.dev/blog/terminal-anatomy/
 https://en.wikibooks.org/wiki/Serial_Programming/termios#Introduction
+
+# To compile 
+run make in src directory
