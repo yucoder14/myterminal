@@ -59,29 +59,32 @@ A Modern way to build projects
 
 How to Render Text
 ==================
-~~As of now, it seems like I need to keep a buffer to keep track of all the characters that were entered.~~ I do not have to keep track of input characters, for I just need to send them straight to the pty
+~~As of now, it seems like I need to keep a buffer to keep track of all the characters that were entered.~~ ~~I do not have to keep track of input characters, for I just need to send them straight to the pty~~ I need to keep track of output characters
 
-~~Not completely sure yet, but the events seems to be handled in an infinite loop, meaning one paint event will take care of any changes that are made to the buffer(?)~~ Events do get handled in an infinite loop, and paint event can be invoked by Refresh
-
+~~Not completely sure yet, but the events seems to be handled in an infinite loop, meaning one paint event will take care of any changes that are made to the buffer(?)~~ Events do get handled in an infinite loop, and paint event can be invoked by Refresh. By having a timer that calls Refresh() periodically, I was able to render new texts if available. However, it is not ideal(?) for it's calling the refresh method more than needed.
 
 Newest Updates
 ==============
-- I got to a point where I can read and write stuff to the shell, but it's printing extra junk (probably some ANSI-code escape sequence that's related to "bracketed paste mode"? 
+- ~~I got to a point where I can read and write stuff to the shell, but it's printing extra junk (probably some ANSI-code escape sequence that's related to "bracketed paste mode"? ~~
+- I can now constantly send/receive incoming/outgoing characters and draw them on the terminal
+- The app crashes! I don't know what it's crashing yet
+    - probably has to do something with how I'm closing the app when I type exit command in the shell
+- I have yet to find a robust way of detecting prompt lines
 
 Data Structure Ideas
 ====================
-- Terminal window should be a grid of character cells (custom class)
-- To correctly parse ANSI-codes, there needs to be an output buffer
+- Terminal window should be a grid of character cells
+    - should contain the size of the window
+    - a long vector to store all the characters; this way I can redraw all the letters when there is a window resize event or text resize event
+    - will be vector of 'Cell' class which contains various information about the what the cell contains 
+    - to conserve space, it's probably best to have a Cell type where it instructs to print multiple spaces/lines, instead of having blank cells that take up meaningless space
+- To correctly parse ANSI-codes, there needs to be an temporary buffer to capture the incoming ansi-codes
+    - data structure to contain different types of ansi-code instruction; will be just a collection of flags that will dictate oncoming non-ansi code characters  
 - output buffer will be used for the prompt and the output 
 
-What I do not understand
-========================
+Notes
+=====
 TE prints weird characters [?2004l and [?2004h when reading from the pty 
-I have to invoke multiple key events in order for the renderer to render everything
-- this is related to how wxWidgets handles events; 
-- from the way I currently have it, the window is only refreshed if keys are pressed or when the window is refocused. 
-- SOLUTION: find a way to generate a custom event regarding output
-    - a separate thread that focuses solely on reading from pty (~~might be redundant~~)    
-        - constant while loop that's solely responsible for reading bytes from the pty and writing them to the buffer
-        - Only refresh the GUI when there are words to read in the buffer (which will be used for parsing later on)
-    
+when I send left/right arrow keys and type, it will print the typed key and the preceding characters
+when I send up/down arrow keys, it will print the previous/next 'command' in the history 
+I have no idea how I'll render uni-code, but that's a problem for later
