@@ -88,3 +88,4 @@ TE prints weird characters [?2004l and [?2004h when reading from the pty
 when I send left/right arrow keys and type, it will print the typed key and the preceding characters
 when I send up/down arrow keys, it will print the previous/next 'command' in the history 
 I have no idea how I'll render uni-code, but that's a problem for later
+My application seems to be incompatible with zsh...
