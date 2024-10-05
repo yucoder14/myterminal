@@ -19,7 +19,7 @@ https://www.youtube.com/watch?v=MfuBS9n5_aY&list=PL0qQTroQZs5vVmTuBew-nTx9DIu6rR
 wxPaintDC - used to draw shapes and text 
 - [x] How do I draw letters on the canvas?
 - [x] How do I set the font?  
-- [ ] How do I create a canvas
+- [x] How do I create a canvas
 - [ ] Rich font? 
 - [ ] How can I render a cursor? (look at the caret sample)
 
@@ -29,8 +29,8 @@ wxKeyEvent - for keyboard inputs
 - [x] How do I draw them on the canvas? 
 
 # Multi-threading GUI application
-- [ ] Do I need this?
-- [ ] How do I send/receive characters/signals between the TE and the shell? 
+- [x] Do I need this?
+- [x] How do I send/receive characters/signals between the TE and the shell? 
 wxThread
 
 
@@ -74,10 +74,10 @@ Newest Updates
 Data Structure Ideas
 ====================
 - Terminal window should be a grid of character cells
-    - should contain the size of the window
-    - a long vector to store all the characters; this way I can redraw all the letters when there is a window resize event or text resize event
-    - will be vector of 'Cell' class which contains various information about the what the cell contains 
-    - to conserve space, it's probably best to have a Cell type where it instructs to print multiple spaces/lines, instead of having blank cells that take up meaningless space
+    - [x]should contain the size of the window 
+    - [x]a long vector to store all the characters; this way I can redraw all the letters when there is a window resize event or text resize event
+    - [x]will be vector of 'Cell' class which contains various information about the what the cell contains 
+    - [x]to conserve space, it's probably best to have a Cell type where it instructs to print multiple spaces/lines, instead of having blank cells that take up meaningless space
 - To correctly parse ANSI-codes, there needs to be an temporary buffer to capture the incoming ansi-codes
     - data structure to contain different types of ansi-code instruction; will be just a collection of flags that will dictate oncoming non-ansi code characters  
 - output buffer will be used for the prompt and the output 
