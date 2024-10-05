@@ -7,15 +7,13 @@
 
 enum CellType {
 	PRINTABLE = 0,
-	WHITESPACE
+	CARRAIGE_RETURN,
+	NEWLINE
 };
 
 class Cell {
+public:
 	enum CellType type; 
-
-	int vertical_shift;
-	int horizontal_shift;
-	
 	char keycode;
 };
 
@@ -32,16 +30,25 @@ public:
 	void OnKeyEvent(wxKeyEvent& event);
 
 private:
+	// widow information 
+	int window_height, window_width;
+	
+	// shell related stuff
 	int pty_master;
 	int shell_pid;
 	int shell_status;
 
-	int char_x, char_y;
-	int char_height, char_width;
+	// cursor position; used to draw text in correct position
+	int cursor_x, cursor_y;
+
+	// font related stuff
+	int font_size;
+	int font_x, font_y;
+	int font_height, font_width;
 
 	std::vector<Cell> grid;
+	int grid_length;
 	char output_buf[65536]; 
-	int output_line_count;
 };
 
 

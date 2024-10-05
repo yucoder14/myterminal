@@ -14,9 +14,17 @@ MyFrame::MyFrame(const wxString& title)
 : wxFrame(nullptr, wxID_ANY, title, wxDefaultPosition, wxSize(800,800)) {
 	panel = new wxPanel(this, -1);
 
-	this->char_x = 0;
-	this->char_y = 0;
+	this->grid_length = 0;
 
+	// Get window size
+	GetSize(&this->window_width, &this->window_height);
+
+	// Set font
+	this->font_size = 16;
+	this->cursor_x = 0;
+	this->cursor_y = 0;
+
+	// Spawn Shell
 	const char *shell_path = "/bin/bash";
 	char * argv[] = {NULL};
 	int fork_status = SpawnShell(&this->pty_master, &this->shell_pid, shell_path, argv);
@@ -35,16 +43,42 @@ MyFrame::MyFrame(const wxString& title)
 		int status;
 		if (waitpid(this->shell_pid, &status, WNOHANG) != this->shell_pid) {
 			// I should recieve text here
+			int flags = fcntl(this->pty_master, F_GETFL, 0);
+			fcntl(this->pty_master, F_SETFL, flags | O_NONBLOCK);
+
+			char b;
+			while(read(this->pty_master, &b, (size_t) 1) != -1) {
+				Cell cell; 
+				switch (b) { 
+					case 13: 
+						cell.type = CARRAIGE_RETURN;
+						break;
+					case 10: 
+						cell.type = NEWLINE;
+						break;
+					default:
+						cell.type = PRINTABLE;
+						cell.keycode = b;
+						break;	
+				}	
+				this->grid.push_back(cell);
+			}
 			// then render the text using Refresh
-			Refresh();
+			if (this->grid_length != this->grid.size())
+				Refresh();
 		} else {
-			cout << "blocking here?" << endl;
+			// stop the timer if the shell is dead
+			renderTimer->Stop();
+
+			// free vector contents? 
+			vector<Cell>().swap(this->grid);
 		}
 
 	});
 	renderTimer->Start(5); // I don't like this
 	CreateStatusBar();
 }
+
 int MyFrame::SpawnShell(int *pty_master, int *shell_pid, const char *shell_path, char * argv[]) {
 	*shell_pid = forkpty(pty_master, nullptr, nullptr, nullptr);
 	switch (*shell_pid) {
@@ -65,7 +99,7 @@ void MyFrame::Render(wxPaintEvent& WXUNUSED(event)) {
 	wxBufferedPaintDC dc(this);
 
 	dc.SetFont(wxFont(
-				16,
+				this->font_size,
 				wxFONTFAMILY_TELETYPE,
 				wxFONTSTYLE_NORMAL,
 				wxFONTWEIGHT_NORMAL
@@ -73,37 +107,44 @@ void MyFrame::Render(wxPaintEvent& WXUNUSED(event)) {
 
 	wxSize dim = dc.GetFont().GetPixelSize();
 
-	if (!this->char_height) {
-		this->char_height = dim.GetHeight();
+	if (!this->font_height) {
+		this->font_height = dim.GetHeight();
 	}
 
-	if (!this->char_width) {
-		this->char_width = dim.GetWidth();
+	if (!this->font_width) {
+		this->font_width = dim.GetWidth();
 	}
 
+	int new_length = this->grid.size();
 
-	// probably this is causing the blocking...
-	// the render function should only render text, NOT fetch then render text
-	// hopefully this problem will be taken care of if I implement the new data structure
-	int flags = fcntl(this->pty_master, F_GETFL, 0);
-	fcntl(this->pty_master, F_SETFL, flags | O_NONBLOCK);
-
-	int i = 0;
-	int line_count = 0;
-	while(read(this->pty_master, &this->output_buf[i], (size_t) 1) != -1) {
-		if (this->output_buf[i] == '\n') {
-			line_count++;
-		}
-		i++;
+	if (this->grid_length != new_length) { 
+		int j = 1; // counter to skip over previously printed characters
+		for (auto i = this->grid.begin(); i != grid.end(); ++i ){
+			if (j > this->grid_length) {  
+				switch ((*i).type) { 
+					case CARRAIGE_RETURN: 
+						this->cursor_x = 0;
+						break;
+					case NEWLINE:
+						this->cursor_y++;
+						break;
+					case PRINTABLE:
+						// text wrapping 
+						if (this->cursor_x * this->font_width > this->window_width - 2 * this->font_width) { 
+							this->cursor_x = 0;
+							this->cursor_y++;
+						}
+						int x = this->cursor_x * this->font_width;
+						int y = this->cursor_y * this->font_height;
+						dc.DrawText((*i).keycode, x, y);
+						this->cursor_x++;
+						break;
+				}
+			}
+			j++;
+		}	
+		this->grid_length = new_length; 
 	}
-	this->output_buf[i] = '\0';
-
-	if (line_count > 0) {
-		i = 0;
-	}
-	dc.DrawText(this->output_buf, this->char_x, this->char_y);
-	this->char_x += this->char_width * i;
-	this->char_y += this->char_height * line_count;
 }
 
 void MyFrame::OnKeyEvent(wxKeyEvent& event) {
@@ -125,8 +166,6 @@ void MyFrame::OnKeyEvent(wxKeyEvent& event) {
 			size++;
 			break;
 		case WXK_RETURN:
-			this->char_y+=this->char_height;
-			this->char_x=0;
 			out[0] = WXK_RETURN;
 			size++;
 			break;
