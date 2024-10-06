@@ -61,7 +61,6 @@ int MyFrame::SpawnShell(int *pty_master, int *shell_pid, const char *shell_path,
 }
 
 void MyFrame::Render(wxPaintEvent& WXUNUSED(event)) {
-	// I don't think the drawing needs to be buffered as I'll draw all the text every function call. not ideal but (for now) feels inevitable considering that I need to somehow redraw all the text during window resize event
 	wxBufferedPaintDC dc(this);
 
 	dc.SetFont(wxFont(
@@ -85,9 +84,14 @@ void MyFrame::Render(wxPaintEvent& WXUNUSED(event)) {
 
 	if (this->grid_length != new_length) { 
 		int j = 1; // counter to skip over previously printed characters
+		
 		for (auto i = this->grid.begin(); i != grid.end(); ++i ){
 			if (j > this->grid_length) {  
 				switch ((*i).type) { 
+					case GUARD:
+						//do not account guard cell as a printable character
+						j--;  
+						break;
 					case CARRAIGE_RETURN: 
 						this->cursor_x = 0;
 						break;
@@ -120,6 +124,8 @@ void MyFrame::OnKeyEvent(wxKeyEvent& event) {
 	int size = 0;
 	char out[10];
 
+	int to_erase = 0;
+
 	switch (keycode) {
 		case WXK_CONTROL_C:
 			cout << "Ctrl-C pressed" << endl;
@@ -127,10 +133,15 @@ void MyFrame::OnKeyEvent(wxKeyEvent& event) {
 			size++;
 			break;
 		case WXK_RETURN:
+			this->place_guard = true;
 			out[0] = WXK_RETURN;
 			size++;
 			break;
 		case WXK_UP:
+			for (auto i = this->grid.rbegin(); (*i).type != GUARD; ++i) {
+				to_erase++;
+			}	
+			cout << to_erase << endl;
 			size+=3;
 			strncpy(out, arrow_up, size);
 			break;
@@ -178,14 +189,20 @@ void MyFrame::Timer(wxTimerEvent& event) {
 			}	
 			this->grid.push_back(cell);
 		}
-		// then render the text using Refresh
+
+		// should i remove the previous guard to save space?
+		if (this->place_guard) {
+			cout << "Guard Placed" << endl;
+			Cell guard; 
+			guard.type = GUARD;
+			this->grid.push_back(guard);
+			this->place_guard = false;
+		}	
+
 		if (this->grid_length != this->grid.size())
 			Refresh();
 	} else {
-		// stop the timer if the shell is dead
 		renderTimer->Stop();
-
-		// free vector contents? 
 		vector<Cell>().swap(this->grid);
 	}
 }	

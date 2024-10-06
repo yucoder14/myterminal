@@ -8,7 +8,8 @@
 enum CellType {
 	PRINTABLE = 0,
 	CARRAIGE_RETURN,
-	NEWLINE
+	NEWLINE,
+	GUARD
 };
 
 class Cell {
@@ -31,6 +32,9 @@ public:
 	void Timer(wxTimerEvent& event);
 
 private:
+	// for placing deletion protection 
+	bool place_guard = true;     // for checking if guard needs to be placed
+
 	// widow information 
 	int window_height, window_width;
 	

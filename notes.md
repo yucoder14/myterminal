@@ -27,6 +27,13 @@ wxPaintDC - used to draw shapes and text
 wxKeyEvent - for keyboard inputs 
 - [x] How do I get pressed keys? 
 - [x] How do I draw them on the canvas? 
+- [ ] How do I un-draw things that have been drawn by previous keystrokes? 
+
+# ANSI stuff
+- [ ] What is sent back from the shell when I send arrow keys? 
+- [ ] What should 'clear' do?
+- [ ] How do I color the foreground & background
+- [ ] How do I do different text styles?
 
 # Multi-threading GUI application
 - [x] Do I need this?
@@ -67,17 +74,20 @@ Newest Updates
 ==============
 - ~~I got to a point where I can read and write stuff to the shell, but it's printing extra junk (probably some ANSI-code escape sequence that's related to "bracketed paste mode"? ~~
 - I can now constantly send/receive incoming/outgoing characters and draw them on the terminal
-- The app crashes! I don't know what it's crashing yet
+- ~~The app crashes! I don't know what it's crashing yet~~
     - probably has to do something with how I'm closing the app when I type exit command in the shell
-- I have yet to find a robust way of detecting prompt lines
+    - I fixed the problem, hopefully by freeing the allocated memory...
+- I have yet to find a robust way of detecting prompt lines → use of guards
+    - I created a 'GUARD' type for the Cell class, to mark a place in the vector where further deletion is now allowed.
+    - A guard is placed whenever user presses the return key, such that if i need to pop things from the vector, I know how far to go.
 
 Data Structure Ideas
 ====================
 - Terminal window should be a grid of character cells
-    - [x]should contain the size of the window 
-    - [x]a long vector to store all the characters; this way I can redraw all the letters when there is a window resize event or text resize event
-    - [x]will be vector of 'Cell' class which contains various information about the what the cell contains 
-    - [x]to conserve space, it's probably best to have a Cell type where it instructs to print multiple spaces/lines, instead of having blank cells that take up meaningless space
+    - [x] should contain the size of the window 
+    - [x] a long vector to store all the characters; this way I can redraw all the letters when there is a window resize event or text resize event
+    - [x] will be vector of 'Cell' class which contains various information about the what the cell contains 
+    - [x] to conserve space, it's probably best to have a Cell type where it instructs to print multiple spaces/lines, instead of having blank cells that take up meaningless space
 - To correctly parse ANSI-codes, there needs to be an temporary buffer to capture the incoming ansi-codes
     - data structure to contain different types of ansi-code instruction; will be just a collection of flags that will dictate oncoming non-ansi code characters  
 - output buffer will be used for the prompt and the output 
@@ -85,7 +95,7 @@ Data Structure Ideas
 Notes
 =====
 TE prints weird characters [?2004l and [?2004h when reading from the pty 
-when I send left/right arrow keys and type, it will print the typed key and the preceding characters
+when I send left/right arrow keys and type, it will print the typed key and the preceding characters; It also appears that some ANSI codes are sent back...
 when I send up/down arrow keys, it will print the previous/next 'command' in the history 
 I have no idea how I'll render uni-code, but that's a problem for later
 My application seems to be incompatible with zsh...
