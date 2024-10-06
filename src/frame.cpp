@@ -40,42 +40,7 @@ MyFrame::MyFrame(const wxString& title)
 	panel->Bind(wxEVT_CHAR, &MyFrame::OnKeyEvent, this);
 
 	renderTimer = new wxTimer(this, RenderTimerId);
-	this->Bind(wxEVT_TIMER, [this](wxTimerEvent&) {
-		int status;
-		if (waitpid(this->shell_pid, &status, WNOHANG) != this->shell_pid) {
-			// I should recieve text here
-			int flags = fcntl(this->pty_master, F_GETFL, 0);
-			fcntl(this->pty_master, F_SETFL, flags | O_NONBLOCK);
-
-			char b;
-			while(read(this->pty_master, &b, (size_t) 1) != -1) {
-				Cell cell; 
-				switch (b) { 
-					case 13: 
-						cell.type = CARRAIGE_RETURN;
-						break;
-					case 10: 
-						cell.type = NEWLINE;
-						break;
-					default:
-						cell.type = PRINTABLE;
-						cell.keycode = b;
-						break;	
-				}	
-				this->grid.push_back(cell);
-			}
-			// then render the text using Refresh
-			if (this->grid_length != this->grid.size())
-				Refresh();
-		} else {
-			// stop the timer if the shell is dead
-			renderTimer->Stop();
-
-			// free vector contents? 
-			vector<Cell>().swap(this->grid);
-		}
-
-	});
+	this->Bind(wxEVT_TIMER, &MyFrame::Timer, this);
 	renderTimer->Start(5); // I don't like this
 	CreateStatusBar();
 }
@@ -190,3 +155,37 @@ void MyFrame::OnKeyEvent(wxKeyEvent& event) {
 	write(this->pty_master, &out, (size_t) size);
 }
 
+void MyFrame::Timer(wxTimerEvent& event) {
+	int status;
+	if (waitpid(this->shell_pid, &status, WNOHANG) != this->shell_pid) {
+		int flags = fcntl(this->pty_master, F_GETFL, 0);
+		fcntl(this->pty_master, F_SETFL, flags | O_NONBLOCK);
+
+		char b;
+		while(read(this->pty_master, &b, (size_t) 1) != -1) {
+			Cell cell; 
+			switch (b) { 
+				case 13: 
+					cell.type = CARRAIGE_RETURN;
+					break;
+				case 10: 
+					cell.type = NEWLINE;
+					break;
+				default:
+					cell.type = PRINTABLE;
+					cell.keycode = b;
+					break;	
+			}	
+			this->grid.push_back(cell);
+		}
+		// then render the text using Refresh
+		if (this->grid_length != this->grid.size())
+			Refresh();
+	} else {
+		// stop the timer if the shell is dead
+		renderTimer->Stop();
+
+		// free vector contents? 
+		vector<Cell>().swap(this->grid);
+	}
+}	

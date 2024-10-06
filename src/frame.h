@@ -28,6 +28,7 @@ public:
 	int SpawnShell(int *pty_master, int *shell_pid, const char * shell_path, char * argv[]);
 	void Render(wxPaintEvent& event);
 	void OnKeyEvent(wxKeyEvent& event);
+	void Timer(wxTimerEvent& event);
 
 private:
 	// widow information 
