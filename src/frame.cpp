@@ -1,4 +1,5 @@
 #include "frame.h"
+#include "constants.h"
 
 #include <iostream>
 
@@ -153,11 +154,6 @@ void MyFrame::OnKeyEvent(wxKeyEvent& event) {
 
 	int size = 0;
 	char out[10];
-	// move this out of this function and make them a constant
-	char arrow_up[] = "\033[A";
-	char arrow_down[] = "\033[B";
-	char arrow_right[] = "\033[C";
-	char arrow_left[] = "\033[D";
 
 	switch (keycode) {
 		case WXK_CONTROL_C:
