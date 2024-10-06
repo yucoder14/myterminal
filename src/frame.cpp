@@ -2,6 +2,7 @@
 #include "constants.h"
 
 #include <iostream>
+#include <deque>
 
 #include <util.h>
 #include <unistd.h>
@@ -15,32 +16,32 @@ MyFrame::MyFrame(const wxString& title)
 : wxFrame(nullptr, wxID_ANY, title, wxDefaultPosition, wxSize(800,800)) {
 	panel = new wxPanel(this, -1);
 
-	this->grid_length = 0;
+	grid_length = 0;
 
 	// Get window size
-	GetSize(&this->window_width, &this->window_height);
+	GetSize(&window_width, &window_height);
 
 	// Set font
-	this->font_size = 16;
-	this->cursor_x = 0;
-	this->cursor_y = 0;
+	font_size = 16;
+	cursor_x = 0;
+	cursor_y = 0;
 
 	// Spawn Shell
 	const char *shell_path = "/bin/bash";
 	char * argv[] = {NULL};
-	int fork_status = SpawnShell(&this->pty_master, &this->shell_pid, shell_path, argv);
+	int fork_status = SpawnShell(&pty_master, &shell_pid, shell_path, argv);
 
 	if (fork_status == -1) {
 		Close(true);
 	}	
 
-	this->SetOwnBackgroundColour(wxColour(0,0,0));
+	SetOwnBackgroundColour(wxColour(0,0,0));
 
-	this->Bind(wxEVT_PAINT, &MyFrame::Render, this);
+	Bind(wxEVT_PAINT, &MyFrame::Render, this);
 	panel->Bind(wxEVT_CHAR, &MyFrame::OnKeyEvent, this);
 
 	renderTimer = new wxTimer(this, RenderTimerId);
-	this->Bind(wxEVT_TIMER, &MyFrame::Timer, this);
+	Bind(wxEVT_TIMER, &MyFrame::Timer, this);
 	renderTimer->Start(5); // I don't like this
 	CreateStatusBar();
 }
@@ -64,7 +65,7 @@ void MyFrame::Render(wxPaintEvent& WXUNUSED(event)) {
 	wxBufferedPaintDC dc(this);
 
 	dc.SetFont(wxFont(
-				this->font_size,
+				font_size,
 				wxFONTFAMILY_TELETYPE,
 				wxFONTSTYLE_NORMAL,
 				wxFONTWEIGHT_NORMAL
@@ -72,48 +73,48 @@ void MyFrame::Render(wxPaintEvent& WXUNUSED(event)) {
 
 	wxSize dim = dc.GetFont().GetPixelSize();
 
-	if (!this->font_height) {
-		this->font_height = dim.GetHeight();
+	if (!font_height) {
+		font_height = dim.GetHeight();
 	}
 
-	if (!this->font_width) {
-		this->font_width = dim.GetWidth();
+	if (!font_width) {
+		font_width = dim.GetWidth();
 	}
 
-	int new_length = this->grid.size();
+	int new_length = grid.size();
 
-	if (this->grid_length != new_length) { 
-		int j = 1; // counter to skip over previously printed characters
+	int new_cells = new_length - grid_length;
 		
-		for (auto i = this->grid.begin(); i != grid.end(); ++i ){
-			if (j > this->grid_length) {  
-				switch ((*i).type) { 
-					case GUARD:
-						//do not account guard cell as a printable character
-						j--;  
-						break;
-					case CARRAIGE_RETURN: 
-						this->cursor_x = 0;
-						break;
-					case NEWLINE:
-						this->cursor_y++;
-						break;
-					case PRINTABLE:
-						// text wrapping 
-						if (this->cursor_x * this->font_width > this->window_width - 2 * this->font_width) { 
-							this->cursor_x = 0;
-							this->cursor_y++;
-						}
-						int x = this->cursor_x * this->font_width;
-						int y = this->cursor_y * this->font_height;
-						dc.DrawText((*i).keycode, x, y);
-						this->cursor_x++;
-						break;
+	deque<Cell> tmp;
+
+	for (auto i = grid.rbegin(); new_cells > 0; ++i) {
+		tmp.push_front(*i); 
+		new_cells--;
+	}	
+
+	for (auto i = tmp.begin(); i != tmp.end(); ++i ){
+		switch ((*i).type) { 
+			case GUARD:
+				//do not account guard cell as a printable character
+				break;
+			case CARRAIGE_RETURN: 
+				cursor_x = 0;
+				break;
+			case NEWLINE:
+				cursor_y++;
+				break;
+			case PRINTABLE:
+				// text wrapping 
+				if (cursor_x * font_width > window_width - 2 * font_width) { 
+					cursor_x = 0;
+					cursor_y++;
 				}
-			}
-			j++;
-		}	
-		this->grid_length = new_length; 
+				int x = cursor_x * font_width;
+				int y = cursor_y * font_height;
+				dc.DrawText((*i).keycode, x, y);
+				cursor_x++;
+		}
+		grid_length = new_length; 
 	}
 }
 
@@ -133,12 +134,12 @@ void MyFrame::OnKeyEvent(wxKeyEvent& event) {
 			size++;
 			break;
 		case WXK_RETURN:
-			this->place_guard = true;
+			place_guard = true;
 			out[0] = WXK_RETURN;
 			size++;
 			break;
 		case WXK_UP:
-			for (auto i = this->grid.rbegin(); (*i).type != GUARD; ++i) {
+			for (auto i = grid.rbegin(); (*i).type != GUARD; ++i) {
 				to_erase++;
 			}	
 			cout << to_erase << endl;
@@ -163,17 +164,17 @@ void MyFrame::OnKeyEvent(wxKeyEvent& event) {
 			break;
 	}
 
-	write(this->pty_master, &out, (size_t) size);
+	write(pty_master, &out, (size_t) size);
 }
 
 void MyFrame::Timer(wxTimerEvent& event) {
 	int status;
-	if (waitpid(this->shell_pid, &status, WNOHANG) != this->shell_pid) {
-		int flags = fcntl(this->pty_master, F_GETFL, 0);
-		fcntl(this->pty_master, F_SETFL, flags | O_NONBLOCK);
+	if (waitpid(shell_pid, &status, WNOHANG) != shell_pid) {
+		int flags = fcntl(pty_master, F_GETFL, 0);
+		fcntl(pty_master, F_SETFL, flags | O_NONBLOCK);
 
 		char b;
-		while(read(this->pty_master, &b, (size_t) 1) != -1) {
+		while(read(pty_master, &b, (size_t) 1) != -1) {
 			Cell cell; 
 			switch (b) { 
 				case 13: 
@@ -187,22 +188,21 @@ void MyFrame::Timer(wxTimerEvent& event) {
 					cell.keycode = b;
 					break;	
 			}	
-			this->grid.push_back(cell);
+			grid.push_back(cell);
 		}
 
 		// should i remove the previous guard to save space?
-		if (this->place_guard) {
-			cout << "Guard Placed" << endl;
+		if (place_guard) {
 			Cell guard; 
 			guard.type = GUARD;
-			this->grid.push_back(guard);
-			this->place_guard = false;
+			grid.push_back(guard);
+			place_guard = false;
 		}	
 
-		if (this->grid_length != this->grid.size())
+		if (grid_length != grid.size())
 			Refresh();
 	} else {
 		renderTimer->Stop();
-		vector<Cell>().swap(this->grid);
+		vector<Cell>().swap(grid);
 	}
 }	
