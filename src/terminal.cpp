@@ -1,8 +1,10 @@
 #include "terminal.h"
 #include "constants.h"
+#include "ansi.h"
 
 #include <iostream>
-#include <deque>
+#include <string>
+#include <cctype>
 
 #include <util.h>
 #include <unistd.h>
@@ -10,12 +12,13 @@
 
 #include <wx/dcbuffer.h>
 
-using namespace std;
+#include <sys/select.h>
+#include <sys/ioctl.h>
+
 
 Terminal::Terminal(wxWindow *parent, wxWindowID id, const wxPoint &pos, const wxSize &size)
-: wxWindow(parent, id, pos, size) {
+: wxScrolled<wxWindow>(parent, id, pos, size) {
 	this->SetBackgroundStyle(wxBG_STYLE_PAINT);
-	grid_length = 0;
 
 	// Get window size
 	GetSize(&window_width, &window_height);
@@ -25,6 +28,18 @@ Terminal::Terminal(wxWindow *parent, wxWindowID id, const wxPoint &pos, const wx
 	cursor_x = 0;
 	cursor_y = 0;
 
+	SetFont(wxFont(
+		font_size,
+		wxFONTFAMILY_TELETYPE,
+		wxFONTSTYLE_NORMAL,
+		wxFONTWEIGHT_NORMAL
+	));
+
+	wxSize dim = GetFont().GetPixelSize();
+
+	font_height = dim.GetHeight();
+	font_width = dim.GetWidth();
+
 	// Spawn Shell
 	const char *shell_path = "/bin/bash";
 	char * argv[] = {NULL};
@@ -32,20 +47,20 @@ Terminal::Terminal(wxWindow *parent, wxWindowID id, const wxPoint &pos, const wx
 
 	if (fork_status == -1) {
 		Close(true);
-	}	
-
-	SetOwnBackgroundColour(wxColour(0,0,0));
+	}
 
 	this->Bind(wxEVT_PAINT, &Terminal::Render, this);
 	this->Bind(wxEVT_CHAR, &Terminal::OnKeyEvent, this);
+	this->Bind(wxEVT_SIZE, &Terminal::ReSize, this);
 
 	renderTimer = new wxTimer(this, RenderTimerId);
 	this->Bind(wxEVT_TIMER, &Terminal::Timer, this);
-	renderTimer->Start(5); // I don't like this
+	renderTimer->Start(10); // I don't like this
 }
 
 int Terminal::SpawnShell(int *pty_master, int *shell_pid, const char *shell_path, char * argv[]) {
 	*shell_pid = forkpty(pty_master, nullptr, nullptr, nullptr);
+
 	switch (*shell_pid) {
 		case -1:
 			cout << "Cannot fork" << endl;
@@ -60,59 +75,46 @@ int Terminal::SpawnShell(int *pty_master, int *shell_pid, const char *shell_path
 }
 
 void Terminal::Render(wxPaintEvent& WXUNUSED(event)) {
-	wxBufferedPaintDC dc(this);
+	wxPaintDC dc(this);
 
-	dc.SetFont(wxFont(
-				font_size,
-				wxFONTFAMILY_TELETYPE,
-				wxFONTSTYLE_NORMAL,
-				wxFONTWEIGHT_NORMAL
-			));
+	dc.Clear();
+	cursor_x = 0;
+	cursor_y = 0;
+	wxGraphicsContext *gc = wxGraphicsContext::Create(dc);
 
-	wxSize dim = dc.GetFont().GetPixelSize();
+	if (gc) {
+		for (auto i = raw_data.begin(); i != raw_data.end(); ++i) {
+			int x, y;
+			switch ((*i).type) {
+				case PRINTABLE:
+					if (cursor_x * font_width > window_width - font_width) { 
+						cursor_x = 0;
+						cursor_y++;
+					}
 
-	if (!font_height) {
-		font_height = dim.GetHeight();
-	}
+					x = cursor_x * font_width;
+					y = cursor_y * font_height;
+					dc.DrawText((*i).keycode, x, y);
+					cursor_x++;	
 
-	if (!font_width) {
-		font_width = dim.GetWidth();
-	}
-
-	int new_length = grid.size();
-
-	int new_cells = new_length - grid_length;
-		
-	deque<Cell> tmp;
-
-	for (auto i = grid.rbegin(); new_cells > 0; ++i) {
-		tmp.push_front(*i); 
-		new_cells--;
-	}	
-
-	for (auto i = tmp.begin(); i != tmp.end(); ++i ){
-		switch ((*i).type) { 
-			case GUARD:
-				//do not account guard cell as a printable character
-				break;
-			case CARRAIGE_RETURN: 
-				cursor_x = 0;
-				break;
-			case NEWLINE:
-				cursor_y++;
-				break;
-			case PRINTABLE:
-				// text wrapping 
-				if (cursor_x * font_width > window_width - 2 * font_width) { 
+					break;
+				case BACKSPACE:
+					break;
+				case BELL:
+					break;
+				case CARRAIGE:
 					cursor_x = 0;
+					break;
+				case NEWLINE:
 					cursor_y++;
-				}
-				int x = cursor_x * font_width;
-				int y = cursor_y * font_height;
-				dc.DrawText((*i).keycode, x, y);
-				cursor_x++;
-		}
-		grid_length = new_length; 
+					break;
+				case ESCAPE:
+					break;
+				case ANSI:
+					break;
+			}	
+		}	
+		delete gc;
 	}
 }
 
@@ -132,15 +134,10 @@ void Terminal::OnKeyEvent(wxKeyEvent& event) {
 			size++;
 			break;
 		case WXK_RETURN:
-			place_guard = true;
 			out[0] = WXK_RETURN;
 			size++;
 			break;
 		case WXK_UP:
-			for (auto i = grid.rbegin(); (*i).type != GUARD; ++i) {
-				to_erase++;
-			}	
-			cout << to_erase << endl;
 			size+=3;
 			strncpy(out, arrow_up, size);
 			break;
@@ -168,39 +165,105 @@ void Terminal::OnKeyEvent(wxKeyEvent& event) {
 void Terminal::Timer(wxTimerEvent& event) {
 	int status;
 	if (waitpid(shell_pid, &status, WNOHANG) != shell_pid) {
-		int flags = fcntl(pty_master, F_GETFL, 0);
-		fcntl(pty_master, F_SETFL, flags | O_NONBLOCK);
+		fd_set reading; 
+		struct timeval timeout; 
 
-		char b;
-		while(read(pty_master, &b, (size_t) 1) != -1) {
-			Cell cell; 
-			switch (b) { 
-				case 13: 
-					cell.type = CARRAIGE_RETURN;
-					break;
-				case 10: 
-					cell.type = NEWLINE;
-					break;
-				default:
-					cell.type = PRINTABLE;
-					cell.keycode = b;
-					break;	
+		FD_ZERO(&reading);
+		FD_SET(pty_master, &reading);
+		memset(&timeout, 0, sizeof(timeout));
+
+		int rc = select(pty_master + 1, &reading, nullptr, nullptr, &timeout);
+
+		if (rc > 0) {
+			if (FD_ISSET(pty_master, &reading)) {
+				ReadFromPty();
+				Refresh();
 			}	
-			grid.push_back(cell);
-		}
-
-		// should i remove the previous guard to save space?
-		if (place_guard) {
-			Cell guard; 
-			guard.type = GUARD;
-			grid.push_back(guard);
-			place_guard = false;
 		}	
-
-		if (grid_length != grid.size())
-			Refresh();
 	} else {
 		renderTimer->Stop();
-		vector<Cell>().swap(grid);
+	}
+}
+
+void Terminal::ReSize(wxSizeEvent& event) {
+	GetSize(&window_width, &window_height);
+
+	struct winsize w;
+
+	w.ws_row = window_height / font_height;
+	w.ws_col = window_width / font_width;
+
+	ioctl(pty_master, TIOCSWINSZ, &w);
+
+	cursor_x=0;
+	cursor_y=0;
+}
+
+void Terminal::ReadFromPty() {
+//	int flags = fcntl(pty_master, F_GETFL, 0);
+//	fcntl(pty_master, F_SETFL, flags | O_NONBLOCK);
+	
+	char buf[65536]; // this is a big assumption that I'm making; has the potential for buffer overflow
+	int bytes_read = read(pty_master, buf, sizeof(buf));
+
+	vector<char> tmp; 
+
+	bool ESC = false; 
+	bool CSI = false;
+
+	for (int i = 0; i < bytes_read; i++) {
+		PtyData datum;
+		char b = buf[i];
+		switch (b) {
+			case 7:	// bell
+				datum.type = BELL;
+				break;
+			case 8:  // backspace
+				cout << "BACKSPACE" << endl;
+				datum.type = BACKSPACE;
+				break;
+			case 10: // newline
+				cout << "NL" << endl;
+				datum.type = NEWLINE;
+				break;
+			case 13: // carriage return
+				cout << "CR" << endl;
+				datum.type = CARRAIGE;
+				break;
+			case 27: // escape
+				ESC = true;
+				break;
+			default:
+				if (ESC) {
+					if (b == '[') {
+						CSI = true;;
+						ESC = false; 
+					} else {	
+						ESC = false;
+						cout << "ESCAPE: " <<  b << endl;
+						datum.type = ESCAPE;
+						datum.ansicode.push_back(b);	
+					}	
+				} else if (CSI) {
+					tmp.push_back(b);	
+					if (isalpha(b)) { 
+						CSI = false;
+						datum.type = ANSI;	
+						datum.ansicode.swap(tmp);
+						string str(datum.ansicode.begin(), datum.ansicode.end());
+						cout << "ANSI CODE: " << str << endl;
+
+					}	
+				} else {
+					cout << b << endl;
+					datum.type = PRINTABLE; 
+					datum.keycode = b; 
+				}	
+				break;
+		}
+
+		if (!ESC && !CSI) {
+			raw_data.push_back(datum);
+		}	
 	}
 }	

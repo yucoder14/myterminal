@@ -6,30 +6,38 @@
 #include <wx/wx.h>
 #include <wx/timer.h>
 
+using namespace std;
 
-enum CellType {
-	PRINTABLE = 0,
-	CARRAIGE_RETURN,
+enum PtyDataType {
+	PRINTABLE,
+	BACKSPACE,
+	BELL,
+	CARRAIGE,
 	NEWLINE,
-	GUARD
+	ESCAPE,
+	ANSI
 };
 
-class Cell {
+class PtyData {
 public:
-	enum CellType type; 
+	enum PtyDataType type; 
 	char keycode;
+	vector<char> ansicode;
 };
 
-class Terminal : public wxWindow {
+class Terminal : public wxScrolled<wxWindow> {
 public:
 	Terminal(wxWindow *parent, wxWindowID id, const wxPoint &pos, const wxSize &size);
 	wxTimer *renderTimer;
 	static constexpr int RenderTimerId = 1114;
 
 	int SpawnShell(int *pty_master, int *shell_pid, const char * shell_path, char * argv[]);
+	void ReadFromPty();
+
 	void Render(wxPaintEvent& event);
 	void OnKeyEvent(wxKeyEvent& event);
 	void Timer(wxTimerEvent& event);
+	void ReSize(wxSizeEvent& event);
 
 private:
 	// for placing deletion protection 
@@ -51,9 +59,9 @@ private:
 	int font_x, font_y;
 	int font_height, font_width;
 
-	std::vector<Cell> grid;
-	int grid_length;
-	char output_buf[65536]; 
+	vector<PtyData> raw_data;
+	vector<vector<char>> archive;
+
 };
 
 

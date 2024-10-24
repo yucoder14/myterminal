@@ -15,6 +15,9 @@ https://www.youtube.com/watch?v=MfuBS9n5_aY&list=PL0qQTroQZs5vVmTuBew-nTx9DIu6rR
 - [ ] How do I write a Cmake file and execute it?
 - [ ] How do I set up a project in order for CMake to work?
 
+# Scrolling 
+- [ ] How can I do dynamic scrolling with growing number of things to draw?
+
 # Create a Custom Canvas with a Caret
 wxPaintDC - used to draw shapes and text 
 - [x] How do I draw letters on the canvas?
@@ -99,3 +102,13 @@ when I send left/right arrow keys and type, it will print the typed key and the 
 when I send up/down arrow keys, it will print the previous/next 'command' in the history 
 I have no idea how I'll render uni-code, but that's a problem for later
 My application seems to be incompatible with zsh...
+If I try to draw beyond the window height, I get a seg fault
+^[?1049h / ^[1049l are ansi codes to let the terminal know when to enable/disable alternative buffer
+^[?1034h toggle interpretation of "meta" keys. This sets the eighth bit of keyboard input
+^[?1h / ^[?1h - toggles the application cursor keys mode, which changes what control sequences are sent by the server
+
+Problems
+========
+Yet to properly receive data from the pty...
+assert ""Assert failure"" failed in FromHi8bit(): invalid multibyte character
+[NSApplication runModalSession:]. -[NSApplication runModalSession:] cannot run inside a transaction begin/commit pair, or inside a transaction commit. Consider switching to an asynchronous equivalent.
