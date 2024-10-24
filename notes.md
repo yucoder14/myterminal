@@ -80,9 +80,12 @@ Newest Updates
 - ~~The app crashes! I don't know what it's crashing yet~~
     - probably has to do something with how I'm closing the app when I type exit command in the shell
     - I fixed the problem, hopefully by freeing the allocated memory...
-- I have yet to find a robust way of detecting prompt lines → use of guards
-    - I created a 'GUARD' type for the Cell class, to mark a place in the vector where further deletion is now allowed.
-    - A guard is placed whenever user presses the return key, such that if i need to pop things from the vector, I know how far to go.
+- ~~I have yet to find a robust way of detecting prompt lines → use of guards~~
+    - ~~I created a 'GUARD' type for the Cell class, to mark a place in the vector where further deletion is now allowed.~~
+    - ~~A guard is placed whenever user presses the return key, such that if i need to pop things from the vector, I know how far to go.~~
+    - There is no need for me to "detect" the prompt line, turns out the shell handles backspacing of characters
+- I can now detect escaped and basic ansi escape codes. I have yet to parse all the sequences mentioned in the following github repo:
+    - https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797
 
 Data Structure Ideas
 ====================
@@ -109,6 +112,8 @@ If I try to draw beyond the window height, I get a seg fault
 
 Problems
 ========
-Yet to properly receive data from the pty...
+Yet to properly receive data from the pty.. → Hopefully this is fixed
 assert ""Assert failure"" failed in FromHi8bit(): invalid multibyte character
 [NSApplication runModalSession:]. -[NSApplication runModalSession:] cannot run inside a transaction begin/commit pair, or inside a transaction commit. Consider switching to an asynchronous equivalent.
+- this happens when I try to print raw data onto the GUI when the data contains man page data
+- also happens when I run the app and click on other applications -> because Render function gets called during focusing/un-focusing of the app
