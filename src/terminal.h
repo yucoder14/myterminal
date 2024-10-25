@@ -1,6 +1,7 @@
 #pragma once 
 
 #include <vector>
+#include <deque> 
 #include <string>
 
 #include <wx/wx.h>
@@ -18,7 +19,7 @@ enum PtyDataType {
 	ANSI
 };
 
-class PtyData {
+struct PtyData {
 public:
 	enum PtyDataType type; 
 	char keycode;
@@ -32,7 +33,9 @@ public:
 	static constexpr int RenderTimerId = 1114;
 
 	int SpawnShell(int *pty_master, int *shell_pid, const char * shell_path, char * argv[]);
-	void ReadFromPty();
+	void ReadFromPty(int pty_master, deque<PtyData> *raw_data);
+	void PopulateGrid(deque<PtyData> *raw_data, vector<vector<char>> *grid, int *cursor_x, int *cursor_y);
+	void Parse(PtyData ansi, vector<vector<char>>* grid, int *cursor_x, int *cursor_y);
 
 	void Render(wxPaintEvent& event);
 	void OnKeyEvent(wxKeyEvent& event);
@@ -40,9 +43,6 @@ public:
 	void ReSize(wxSizeEvent& event);
 
 private:
-	// for placing deletion protection 
-	bool place_guard = true;     // for checking if guard needs to be placed
-
 	// widow information 
 	int window_height, window_width;
 	
@@ -52,16 +52,19 @@ private:
 	int shell_status;
 
 	// cursor position; used to draw text in correct position
-	int cursor_x, cursor_y;
+	int main_cursor_x, main_cursor_y;
+	int alt_cursor_x, alt_cursor_y;
 
 	// font related stuff
 	int font_size;
 	int font_x, font_y;
 	int font_height, font_width;
 
-	vector<PtyData> raw_data;
-	vector<vector<char>> archive;
+	bool alt_screen = false;
 
+	deque<PtyData> raw_data;
+	vector<vector<char>> main_grid;
+	vector<vector<char>> alt_grid;
 };
 
 

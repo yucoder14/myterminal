@@ -1,6 +1,5 @@
 #include "terminal.h"
 #include "constants.h"
-#include "ansi.h"
 
 #include <iostream>
 #include <string>
@@ -25,8 +24,10 @@ Terminal::Terminal(wxWindow *parent, wxWindowID id, const wxPoint &pos, const wx
 
 	// Set font
 	font_size = 16;
-	cursor_x = 0;
-	cursor_y = 0;
+	main_cursor_x = 0;
+	main_cursor_y = 0;
+	alt_cursor_x = 0;
+	alt_cursor_y = 0;
 
 	SetFont(wxFont(
 		font_size,
@@ -39,6 +40,12 @@ Terminal::Terminal(wxWindow *parent, wxWindowID id, const wxPoint &pos, const wx
 
 	font_height = dim.GetHeight();
 	font_width = dim.GetWidth();
+
+	for (int i = 0; i < window_height / font_height; i++) {
+		vector<char> line;
+		alt_grid.push_back(line);
+		main_grid.push_back(line);
+	}	
 
 	// Spawn Shell
 	const char *shell_path = "/bin/bash";
@@ -78,41 +85,31 @@ void Terminal::Render(wxPaintEvent& WXUNUSED(event)) {
 	wxPaintDC dc(this);
 
 	dc.Clear();
-	cursor_x = 0;
-	cursor_y = 0;
 	wxGraphicsContext *gc = wxGraphicsContext::Create(dc);
 
 	if (gc) {
-		for (auto i = raw_data.begin(); i != raw_data.end(); ++i) {
-			int x, y;
-			switch ((*i).type) {
-				case PRINTABLE:
-					if (cursor_x * font_width > window_width - font_width) { 
-						cursor_x = 0;
-						cursor_y++;
-					}
+		vector<vector<char>>* grid; 
 
-					x = cursor_x * font_width;
-					y = cursor_y * font_height;
-					dc.DrawText((*i).keycode, x, y);
-					cursor_x++;	
+		if (alt_screen) {
+			grid = &alt_grid;
+		} else {
+			grid = &main_grid;	
+		}	
 
-					break;
-				case BACKSPACE:
-					break;
-				case BELL:
-					break;
-				case CARRAIGE:
-					cursor_x = 0;
-					break;
-				case NEWLINE:
-					cursor_y++;
-					break;
-				case ESCAPE:
-					break;
-				case ANSI:
-					break;
+		int win_x = 0, win_y = 0;
+		for (auto i = grid->begin(); i != grid->end(); ++i) {
+			for (auto j = i->begin(); j != i->end(); ++j) {
+				if (win_x * font_width > window_width - font_width) { 
+					win_x = 0;
+					win_y++;
+				}
+				int x = win_x * font_width;
+				int y = win_y * font_height;
+				dc.DrawText(*j, x, y);
+				win_x++;	
 			}	
+			win_x=0;
+			win_y++;
 		}	
 		delete gc;
 	}
@@ -176,7 +173,12 @@ void Terminal::Timer(wxTimerEvent& event) {
 
 		if (rc > 0) {
 			if (FD_ISSET(pty_master, &reading)) {
-				ReadFromPty();
+				ReadFromPty(pty_master, &raw_data);
+				if (alt_screen) {
+					PopulateGrid(&raw_data, &alt_grid, &alt_cursor_x, &alt_cursor_y);	 
+				} else {
+					PopulateGrid(&raw_data, &main_grid, &main_cursor_x, &main_cursor_y);	 
+				}	
 				Refresh();
 			}	
 		}	
@@ -190,19 +192,24 @@ void Terminal::ReSize(wxSizeEvent& event) {
 
 	struct winsize w;
 
-	w.ws_row = window_height / font_height;
-	w.ws_col = window_width / font_width;
+	int new_height = window_height / font_height;
+	int new_width = window_width / font_width;
+
+	w.ws_row = new_height;
+	w.ws_col = new_width; 
+
+	if (new_height > main_grid.size()) {
+		for (int i = 0; i < new_height - main_grid.size(); i++) {
+			vector<char> line;	
+			main_grid.push_back(line);
+			alt_grid.push_back(line);
+		}	
+	}	
 
 	ioctl(pty_master, TIOCSWINSZ, &w);
-
-	cursor_x=0;
-	cursor_y=0;
 }
 
-void Terminal::ReadFromPty() {
-//	int flags = fcntl(pty_master, F_GETFL, 0);
-//	fcntl(pty_master, F_SETFL, flags | O_NONBLOCK);
-	
+void Terminal::ReadFromPty(int pty_master, deque<PtyData> *raw_data) {
 	char buf[65536]; // this is a big assumption that I'm making; has the potential for buffer overflow
 	int bytes_read = read(pty_master, buf, sizeof(buf));
 
@@ -263,7 +270,55 @@ void Terminal::ReadFromPty() {
 		}
 
 		if (!ESC && !CSI) {
-			raw_data.push_back(datum);
+			(*raw_data).push_back(datum);
 		}	
 	}
+}	
+
+void Terminal::PopulateGrid(deque<PtyData> *raw_data, vector<vector<char>> *grid, int *cursor_x, int *cursor_y ) {
+	while (!raw_data->empty()) {
+		PtyData current = raw_data->at(0);
+		
+		switch (current.type) {
+			case PRINTABLE:
+				grid->at(*cursor_y).insert(grid->at(*cursor_y).begin() + *cursor_x, current.keycode);
+				(*cursor_x)++;
+				break;
+			case BACKSPACE:
+				(*cursor_x)--;
+				break;
+			case BELL:
+				break;
+			case CARRAIGE:
+				(*cursor_x) = 0;
+				break;
+			case NEWLINE:
+				(*cursor_y)++;
+				break;
+			case ESCAPE:
+				break;
+			case ANSI:
+				Parse(current, grid, cursor_x, cursor_y);
+				break;
+		}	
+
+		raw_data->pop_front();
+	}	
+}	
+
+void Terminal::Parse(PtyData ansi, vector<vector<char>>* grid, int *cursor_x, int *cursor_y) {
+	string str(ansi.ansicode.begin(), ansi.ansicode.end());
+
+	// very basic	
+	if (str=="K") {
+		int size = grid->at(*cursor_y).size(); 
+		while (*cursor_x < size) {	
+			grid->at(*cursor_y).pop_back();
+			size--;
+		}	
+	} else if (str == "?1049h") {
+		alt_screen = true;
+	} else if (str == "?1049l") {
+		alt_screen = false;
+	}	
 }	
