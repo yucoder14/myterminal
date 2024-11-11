@@ -65,6 +65,9 @@ private:
 	deque<PtyData> raw_data;
 	vector<vector<char>> main_grid;
 	vector<vector<char>> alt_grid;
+
+	char buf[65536];
+	bool space = true;
 };
 
 

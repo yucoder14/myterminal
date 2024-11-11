@@ -42,8 +42,9 @@ Terminal::Terminal(wxWindow *parent, wxWindowID id, const wxPoint &pos, const wx
 	font_width = dim.GetWidth();
 
 	for (int i = 0; i < window_height / font_height; i++) {
+		vector<char> line1;
 		vector<char> line;
-		alt_grid.push_back(line);
+		alt_grid.push_back(line1);
 		main_grid.push_back(line);
 	}	
 
@@ -98,18 +99,20 @@ void Terminal::Render(wxPaintEvent& WXUNUSED(event)) {
 
 		int win_x = 0, win_y = 0;
 		for (auto i = grid->begin(); i != grid->end(); ++i) {
-			for (auto j = i->begin(); j != i->end(); ++j) {
-				if (win_x * font_width > window_width - font_width) { 
-					win_x = 0;
-					win_y++;
-				}
-				int x = win_x * font_width;
-				int y = win_y * font_height;
-				dc.DrawText(*j, x, y);
-				win_x++;	
+			if (win_y * font_height < window_height) {
+				for (auto j = i->begin(); j != i->end(); ++j) {
+					if (win_x * font_width > window_width - font_width) { 
+						win_x = 0;
+						win_y++;
+					}
+					int x = win_x * font_width;
+					int y = win_y * font_height;
+					dc.DrawText(*j, x, y);
+					win_x++;	
+				}	
+				win_x=0;
+				win_y++;
 			}	
-			win_x=0;
-			win_y++;
 		}	
 		delete gc;
 	}
@@ -198,19 +201,10 @@ void Terminal::ReSize(wxSizeEvent& event) {
 	w.ws_row = new_height;
 	w.ws_col = new_width; 
 
-	if (new_height > main_grid.size()) {
-		for (int i = 0; i < new_height - main_grid.size(); i++) {
-			vector<char> line;	
-			main_grid.push_back(line);
-			alt_grid.push_back(line);
-		}	
-	}	
-
 	ioctl(pty_master, TIOCSWINSZ, &w);
 }
 
 void Terminal::ReadFromPty(int pty_master, deque<PtyData> *raw_data) {
-	char buf[65536]; // this is a big assumption that I'm making; has the potential for buffer overflow
 	int bytes_read = read(pty_master, buf, sizeof(buf));
 
 	vector<char> tmp; 
@@ -262,7 +256,7 @@ void Terminal::ReadFromPty(int pty_master, deque<PtyData> *raw_data) {
 
 					}	
 				} else {
-					cout << b << endl;
+					cout << b << ", " << int(b) << endl;
 					datum.type = PRINTABLE; 
 					datum.keycode = b; 
 				}	
@@ -277,6 +271,11 @@ void Terminal::ReadFromPty(int pty_master, deque<PtyData> *raw_data) {
 
 void Terminal::PopulateGrid(deque<PtyData> *raw_data, vector<vector<char>> *grid, int *cursor_x, int *cursor_y ) {
 	while (!raw_data->empty()) {
+		if (*cursor_y > grid->size() - 1) {
+			vector<char> newline;
+			grid->push_back(newline);
+		}	
+
 		PtyData current = raw_data->at(0);
 		
 		switch (current.type) {
@@ -285,7 +284,11 @@ void Terminal::PopulateGrid(deque<PtyData> *raw_data, vector<vector<char>> *grid
 				(*cursor_x)++;
 				break;
 			case BACKSPACE:
-				(*cursor_x)--;
+				if (*cursor_x == 0) {	
+					(*cursor_y)--;
+				} else {	
+					(*cursor_x)--;
+				}	
 				break;
 			case BELL:
 				break;
@@ -320,5 +323,6 @@ void Terminal::Parse(PtyData ansi, vector<vector<char>>* grid, int *cursor_x, in
 		alt_screen = true;
 	} else if (str == "?1049l") {
 		alt_screen = false;
+		
 	}	
 }	

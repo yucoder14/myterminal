@@ -86,6 +86,7 @@ Newest Updates
     - There is no need for me to "detect" the prompt line, turns out the shell handles backspacing of characters
 - I can now detect escaped and basic ansi escape codes. I have yet to parse all the sequences mentioned in the following github repo:
     - https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797
+- I can now parse ^[K somewhat correctly
 
 Data Structure Ideas
 ====================
@@ -112,7 +113,11 @@ If I try to draw beyond the window height, I get a seg fault
 
 Problems
 ========
+CR in middle of input (when the input length is bigger than the allotted terminal window, shell prints a CR) causes bugs 
+Cannot correctly handle ← and → keys
 Yet to properly receive data from the pty.. → Hopefully this is fixed
+Cannot display man pages → program crashes when attempting to 
+top causes seg fault.
 assert ""Assert failure"" failed in FromHi8bit(): invalid multibyte character
 [NSApplication runModalSession:]. -[NSApplication runModalSession:] cannot run inside a transaction begin/commit pair, or inside a transaction commit. Consider switching to an asynchronous equivalent.
 - this happens when I try to print raw data onto the GUI when the data contains man page data
