@@ -10,6 +10,6 @@ MyFrame::MyFrame(const wxString& title)
 	sizer->Add(term, 1, wxEXPAND | wxALL);
 	SetSizerAndFit(sizer);
 
-	CreateStatusBar();
+//	CreateStatusBar();
 }
 

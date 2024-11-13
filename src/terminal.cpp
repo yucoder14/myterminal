@@ -46,7 +46,7 @@ Terminal::Terminal(wxWindow *parent, wxWindowID id, const wxPoint &pos, const wx
 		vector<char> line;
 		alt_grid.push_back(line1);
 		main_grid.push_back(line);
-	}	
+	}
 
 	// Spawn Shell
 	const char *shell_path = "/bin/bash";
@@ -89,31 +89,36 @@ void Terminal::Render(wxPaintEvent& WXUNUSED(event)) {
 	wxGraphicsContext *gc = wxGraphicsContext::Create(dc);
 
 	if (gc) {
-		vector<vector<char>>* grid; 
+		vector<vector<char>>* grid;
 
 		if (alt_screen) {
 			grid = &alt_grid;
+			cout << "**************** alt ****************" << endl;
 		} else {
-			grid = &main_grid;	
-		}	
+			grid = &main_grid;
+			cout << "**************** main ****************" << endl;
+		}
 
-		int win_x = 0, win_y = 0;
-		for (auto i = grid->begin(); i != grid->end(); ++i) {
-			if (win_y * font_height < window_height) {
-				for (auto j = i->begin(); j != i->end(); ++j) {
-					if (win_x * font_width > window_width - font_width) { 
-						win_x = 0;
-						win_y++;
-					}
-					int x = win_x * font_width;
-					int y = win_y * font_height;
-					dc.DrawText(*j, x, y);
-					win_x++;	
-				}	
-				win_x=0;
-				win_y++;
-			}	
+		// calculate offset value to print to the last available 
+		int offset = grid->size() - int(window_height / font_height) + 2;
+		if (offset < 0) {
+			offset = 0;
 		}	
+		int win_x = 0, win_y = 0;
+		for (auto i = grid->begin() + offset; i != grid->end(); i++) {
+			for (auto j = i->begin(); j != i->end(); j++) {
+				if (win_x * font_width > window_width - font_width) {
+					win_x = 0;
+					win_y++;
+				}
+				int x = win_x * font_width;
+				int y = win_y * font_height;
+				dc.DrawText(*j, x, y);
+				win_x++;
+			}
+			win_x=0;
+			win_y++;
+		}
 		delete gc;
 	}
 }
@@ -165,8 +170,8 @@ void Terminal::OnKeyEvent(wxKeyEvent& event) {
 void Terminal::Timer(wxTimerEvent& event) {
 	int status;
 	if (waitpid(shell_pid, &status, WNOHANG) != shell_pid) {
-		fd_set reading; 
-		struct timeval timeout; 
+		fd_set reading;
+		struct timeval timeout;
 
 		FD_ZERO(&reading);
 		FD_SET(pty_master, &reading);
@@ -178,13 +183,13 @@ void Terminal::Timer(wxTimerEvent& event) {
 			if (FD_ISSET(pty_master, &reading)) {
 				ReadFromPty(pty_master, &raw_data);
 				if (alt_screen) {
-					PopulateGrid(&raw_data, &alt_grid, &alt_cursor_x, &alt_cursor_y);	 
+					PopulateGrid(&raw_data, &alt_grid, &alt_cursor_x, &alt_cursor_y);
 				} else {
-					PopulateGrid(&raw_data, &main_grid, &main_cursor_x, &main_cursor_y);	 
-				}	
+					PopulateGrid(&raw_data, &main_grid, &main_cursor_x, &main_cursor_y);
+				}
 				Refresh();
-			}	
-		}	
+			}
+		}
 	} else {
 		renderTimer->Stop();
 	}
@@ -199,7 +204,7 @@ void Terminal::ReSize(wxSizeEvent& event) {
 	int new_width = window_width / font_width;
 
 	w.ws_row = new_height;
-	w.ws_col = new_width; 
+	w.ws_col = new_width;
 
 	ioctl(pty_master, TIOCSWINSZ, &w);
 }
@@ -207,9 +212,9 @@ void Terminal::ReSize(wxSizeEvent& event) {
 void Terminal::ReadFromPty(int pty_master, deque<PtyData> *raw_data) {
 	int bytes_read = read(pty_master, buf, sizeof(buf));
 
-	vector<char> tmp; 
+	vector<char> tmp;
 
-	bool ESC = false; 
+	bool ESC = false;
 	bool CSI = false;
 
 	for (int i = 0; i < bytes_read; i++) {
@@ -222,6 +227,10 @@ void Terminal::ReadFromPty(int pty_master, deque<PtyData> *raw_data) {
 			case 8:  // backspace
 				cout << "BACKSPACE" << endl;
 				datum.type = BACKSPACE;
+				break;
+			case 9: // tabspace
+				cout << "TAB" << endl;
+				datum.type = TAB;
 				break;
 			case 10: // newline
 				cout << "NL" << endl;
@@ -238,58 +247,59 @@ void Terminal::ReadFromPty(int pty_master, deque<PtyData> *raw_data) {
 				if (ESC) {
 					if (b == '[') {
 						CSI = true;;
-						ESC = false; 
-					} else {	
+						ESC = false;
+					} else {
 						ESC = false;
 						cout << "ESCAPE: " <<  b << endl;
 						datum.type = ESCAPE;
-						datum.ansicode.push_back(b);	
-					}	
+						datum.ansicode.push_back(b);
+					}
 				} else if (CSI) {
-					tmp.push_back(b);	
-					if (isalpha(b)) { 
+					tmp.push_back(b);
+					if (isalpha(b)) {
 						CSI = false;
-						datum.type = ANSI;	
+						datum.type = ANSI;
 						datum.ansicode.swap(tmp);
 						string str(datum.ansicode.begin(), datum.ansicode.end());
 						cout << "ANSI CODE: " << str << endl;
 
-					}	
+					}
 				} else {
 					cout << b << ", " << int(b) << endl;
-					datum.type = PRINTABLE; 
-					datum.keycode = b; 
-				}	
+					datum.type = PRINTABLE;
+					datum.keycode = b;
+				}
 				break;
 		}
 
 		if (!ESC && !CSI) {
 			(*raw_data).push_back(datum);
-		}	
+		}
 	}
-}	
+}
 
 void Terminal::PopulateGrid(deque<PtyData> *raw_data, vector<vector<char>> *grid, int *cursor_x, int *cursor_y ) {
 	while (!raw_data->empty()) {
 		if (*cursor_y > grid->size() - 1) {
 			vector<char> newline;
 			grid->push_back(newline);
-		}	
+		}
 
 		PtyData current = raw_data->at(0);
-		
+
 		switch (current.type) {
 			case PRINTABLE:
 				grid->at(*cursor_y).insert(grid->at(*cursor_y).begin() + *cursor_x, current.keycode);
 				(*cursor_x)++;
 				break;
 			case BACKSPACE:
-				if (*cursor_x == 0) {	
-					(*cursor_y)--;
-				} else {	
-					(*cursor_x)--;
-				}	
+				(*cursor_x)--;
 				break;
+			case TAB:
+				for (int i = 0; i < 4; i++) {
+					grid->at(*cursor_y).insert(grid->at(*cursor_y).begin() + *cursor_x, ' ');
+					(*cursor_x)++;
+				}	
 			case BELL:
 				break;
 			case CARRAIGE:
@@ -303,26 +313,26 @@ void Terminal::PopulateGrid(deque<PtyData> *raw_data, vector<vector<char>> *grid
 			case ANSI:
 				Parse(current, grid, cursor_x, cursor_y);
 				break;
-		}	
+		}
 
 		raw_data->pop_front();
-	}	
-}	
+	}
+}
 
 void Terminal::Parse(PtyData ansi, vector<vector<char>>* grid, int *cursor_x, int *cursor_y) {
 	string str(ansi.ansicode.begin(), ansi.ansicode.end());
 
-	// very basic	
+	// very basic
 	if (str=="K") {
-		int size = grid->at(*cursor_y).size(); 
-		while (*cursor_x < size) {	
+		int size = grid->at(*cursor_y).size();
+		while (*cursor_x < size) {
 			grid->at(*cursor_y).pop_back();
 			size--;
-		}	
+		}
 	} else if (str == "?1049h") {
 		alt_screen = true;
 	} else if (str == "?1049l") {
 		alt_screen = false;
-		
-	}	
-}	
+		grid->clear();
+	}
+}

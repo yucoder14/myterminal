@@ -12,6 +12,7 @@ using namespace std;
 enum PtyDataType {
 	PRINTABLE,
 	BACKSPACE,
+	TAB,
 	BELL,
 	CARRAIGE,
 	NEWLINE,
