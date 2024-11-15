@@ -27,7 +27,7 @@ public:
 	vector<char> ansicode;
 };
 
-class Terminal : public wxScrolled<wxWindow> {
+class Terminal : public wxWindow {
 public:
 	Terminal(wxWindow *parent, wxWindowID id, const wxPoint &pos, const wxSize &size);
 	wxTimer *renderTimer;
@@ -35,7 +35,8 @@ public:
 
 	int SpawnShell(int *pty_master, int *shell_pid, const char * shell_path, char * argv[]);
 	void ReadFromPty(int pty_master, deque<PtyData> *raw_data);
-	void PopulateGrid(deque<PtyData> *raw_data, vector<vector<char>> *grid, int *cursor_x, int *cursor_y);
+	void PopulateGrid(PtyData *raw_data, vector<vector<char>> *grid, int *cursor_x, int *cursor_y);
+//	void PopulateGrid(deque<PtyData> *raw_data, vector<vector<char>> *grid, int *cursor_x, int *cursor_y);
 	void Parse(PtyData ansi, vector<vector<char>>* grid, int *cursor_x, int *cursor_y);
 
 	void Render(wxPaintEvent& event);
