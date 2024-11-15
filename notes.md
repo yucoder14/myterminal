@@ -84,6 +84,9 @@ Newest Updates
     - https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797
 - I can now parse ^[K somewhat correctly
 - I can now handle non_ascii characters, but I cannot print them just yet...
+- On drawing characters...
+    - it appears that vim, top are not printed correctly when printing from bottom right to top left. Current solution is to just print all alternate screens from top left to bottom right 
+    - main screen is drawn from bottom right to top left
 
 Data Structure Ideas
 ====================
