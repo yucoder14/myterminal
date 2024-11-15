@@ -87,67 +87,65 @@ void Terminal::Render(wxPaintEvent& WXUNUSED(event)) {
 
 		if (alt_screen) {
 			grid = &alt_grid;
-//			cout << "**************** alt ****************" << endl;
-		} else {
-			grid = &main_grid;
-//			cout << "**************** main ****************" << endl;
-		}
+			int offset = grid->size() - int(window_height / font_height);
+			if (offset < 0) {
+				offset = 0;
+			}
 
-		/* 
-			There is no need to calculate the offset value if I draw from bottom right to top left
-		*/
-		int max_col = (int) window_width / font_width;
-		int max_row = (int) window_height/ font_height;
 
-		int win_y = (grid->size() < max_row) ? grid->size() : max_row ; 
-		
-		for (auto i = grid->rbegin(); i != grid->rend(); i++) {
-			if (win_y < 1) {
-				break;
-			} else {	
-				int win_x = (i->size() < max_col) ? i->size() : i->size() % max_col;
-
-				for (auto j = i->rbegin(); j != i->rend(); j++) {
-					if (win_x < 1) {
-						win_x = max_col;
-						win_y--;
+			int win_x = 0, win_y = 0;
+			for (auto i = grid->begin() + offset; i != grid->end(); i++) {
+				for (auto j = i->begin(); j != i->end(); j++) {
+					if (win_x * font_width > window_width - font_width) {
+						win_x = 0;
+						win_y++;
 					}
-					int x, y; 
-					x = (win_x - 1) * font_width;
-					y = (win_y - 1) * font_height;
-
+					int x = win_x * font_width;
+					int y = win_y * font_height;
 					wxUniChar b((int)*j);
 					dc.DrawText(b, x, y);
-					win_x--;
-				}	
+					win_x++;
+				}
+				win_x=0;
+				win_y++;
+			}
+		} else {
+			grid = &main_grid;
+			/* 
+				There is no need to calculate the offset value if I draw from bottom right to top left
+			*/
+			int max_col = (int) window_width / font_width;
+			int max_row = (int) window_height/ font_height;
 
-				win_y--;
+			int win_y = (grid->size() < max_row) ? grid->size() : max_row ; 
+			
+			for (auto i = grid->rbegin(); i != grid->rend(); i++) {
+				if (win_y < 1) {
+					break;
+				} else {	
+					int win_x = (i->size() < max_col) ? i->size() : i->size() % max_col;
+
+					for (auto j = i->rbegin(); j != i->rend(); j++) {
+						if (win_x < 1) {
+							win_x = max_col;
+							win_y--;
+						}
+						int x, y; 
+						x = (win_x - 1) * font_width;
+						y = (win_y - 1) * font_height;
+
+						wxUniChar b((int)*j);
+						dc.DrawText(b, x, y);
+						win_x--;
+					}	
+
+					win_y--;
+				}	
 			}	
-		}	
+		}
+
 
 		// calculate offset value to print to the last available
-//		int offset = grid->size() - int(window_height / font_height) + 2;
-//		if (offset < 0) {
-//			offset = 0;
-//		}
-//
-//
-//		int win_x = 0, win_y = 0;
-//		for (auto i = grid->begin() + offset; i != grid->end(); i++) {
-//			for (auto j = i->begin(); j != i->end(); j++) {
-//				if (win_x * font_width > window_width - font_width) {
-//					win_x = 0;
-//					win_y++;
-//				}
-//				int x = win_x * font_width;
-//				int y = win_y * font_height;
-//				wxUniChar b((int)*j);
-//				dc.DrawText(b, x, y);
-//				win_x++;
-//			}
-//			win_x=0;
-//			win_y++;
-//		}
 		delete gc;
 	}
 }
