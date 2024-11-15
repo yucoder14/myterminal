@@ -16,11 +16,12 @@ https://www.youtube.com/watch?v=MfuBS9n5_aY&list=PL0qQTroQZs5vVmTuBew-nTx9DIu6rR
 - [ ] How do I set up a project in order for CMake to work?
 
 # Scrolling 
-- [ ] How can I do dynamic scrolling with growing number of things to draw?
+- [x] How can I do dynamic scrolling with growing number of things to draw? → I handled this by using two dimensional vector 
 
 # Create a Custom Canvas with a Caret
 wxPaintDC - used to draw shapes and text 
 - [x] How do I draw letters on the canvas?
+- [x] wxUniChar was an important element of the puzzle. 
 - [x] How do I set the font?  
 - [x] How do I create a canvas
 - [ ] Rich font? 
@@ -30,7 +31,10 @@ wxPaintDC - used to draw shapes and text
 wxKeyEvent - for keyboard inputs 
 - [x] How do I get pressed keys? 
 - [x] How do I draw them on the canvas? 
-- [ ] How do I un-draw things that have been drawn by previous keystrokes? 
+- [x] How do I un-draw things that have been drawn by previous keystrokes? → as of now, the whole window gets redrawn periodically. So I just pop things off the vector to "undraw"j
+
+# Unicode stuff
+- [ ] How would I draw a unicode character? 
 
 # ANSI stuff
 - [ ] What is sent back from the shell when I send arrow keys? 
@@ -70,23 +74,16 @@ A Modern way to build projects
 How to Render Text
 ==================
 ~~As of now, it seems like I need to keep a buffer to keep track of all the characters that were entered.~~ ~~I do not have to keep track of input characters, for I just need to send them straight to the pty~~ I need to keep track of output characters
+~~Not completely sure yet, but the events seems to be handled in an infinite loop, meaning one paint event will take care of any changes that are made to the buffer(?)~~ Events do get handled in an infinite loop, and paint event can be invoked by Refresh. By having a timer that calls Refresh() periodically, I was able to render new texts if available. However, it is not ideal(?) for it's calling the refresh method more than needed. 
 
-~~Not completely sure yet, but the events seems to be handled in an infinite loop, meaning one paint event will take care of any changes that are made to the buffer(?)~~ Events do get handled in an infinite loop, and paint event can be invoked by Refresh. By having a timer that calls Refresh() periodically, I was able to render new texts if available. However, it is not ideal(?) for it's calling the refresh method more than needed.
 
 Newest Updates
 ==============
-- ~~I got to a point where I can read and write stuff to the shell, but it's printing extra junk (probably some ANSI-code escape sequence that's related to "bracketed paste mode"? ~~
 - I can now constantly send/receive incoming/outgoing characters and draw them on the terminal
-- ~~The app crashes! I don't know what it's crashing yet~~
-    - probably has to do something with how I'm closing the app when I type exit command in the shell
-    - I fixed the problem, hopefully by freeing the allocated memory...
-- ~~I have yet to find a robust way of detecting prompt lines → use of guards~~
-    - ~~I created a 'GUARD' type for the Cell class, to mark a place in the vector where further deletion is now allowed.~~
-    - ~~A guard is placed whenever user presses the return key, such that if i need to pop things from the vector, I know how far to go.~~
-    - There is no need for me to "detect" the prompt line, turns out the shell handles backspacing of characters
 - I can now detect escaped and basic ansi escape codes. I have yet to parse all the sequences mentioned in the following github repo:
     - https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797
 - I can now parse ^[K somewhat correctly
+- I can now handle non_ascii characters, but I cannot print them just yet...
 
 Data Structure Ideas
 ====================
@@ -101,12 +98,9 @@ Data Structure Ideas
 
 Notes
 =====
-TE prints weird characters [?2004l and [?2004h when reading from the pty 
 when I send left/right arrow keys and type, it will print the typed key and the preceding characters; It also appears that some ANSI codes are sent back...
 when I send up/down arrow keys, it will print the previous/next 'command' in the history 
 I have no idea how I'll render uni-code, but that's a problem for later
-My application seems to be incompatible with zsh...
-If I try to draw beyond the window height, I get a seg fault
 ^[?1049h / ^[1049l are ansi codes to let the terminal know when to enable/disable alternative buffer
 ^[?1034h toggle interpretation of "meta" keys. This sets the eighth bit of keyboard input
 ^[?1h / ^[?1h - toggles the application cursor keys mode, which changes what control sequences are sent by the server
@@ -115,10 +109,3 @@ Problems
 ========
 CR in middle of input (when the input length is bigger than the allotted terminal window, shell prints a CR) causes bugs 
 Cannot correctly handle ← and → keys
-Yet to properly receive data from the pty.. → Hopefully this is fixed
-Cannot display man pages → program crashes when attempting to 
-top causes seg fault.
-assert ""Assert failure"" failed in FromHi8bit(): invalid multibyte character
-[NSApplication runModalSession:]. -[NSApplication runModalSession:] cannot run inside a transaction begin/commit pair, or inside a transaction commit. Consider switching to an asynchronous equivalent.
-- this happens when I try to print raw data onto the GUI when the data contains man page data
-- also happens when I run the app and click on other applications -> because Render function gets called during focusing/un-focusing of the app
