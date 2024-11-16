@@ -87,6 +87,7 @@ Newest Updates
 - On drawing characters...
     - it appears that vim, top are not printed correctly when printing from bottom right to top left. Current solution is to just print all alternate screens from top left to bottom right 
     - main screen is drawn from bottom right to top left
+- Crude clear → causes zsh to crash because I'm clearing the vector without changing the cursor to (0, 0)
 
 Data Structure Ideas
 ====================
@@ -107,6 +108,7 @@ I have no idea how I'll render uni-code, but that's a problem for later
 ^[?1049h / ^[1049l are ansi codes to let the terminal know when to enable/disable alternative buffer
 ^[?1034h toggle interpretation of "meta" keys. This sets the eighth bit of keyboard input
 ^[?1h / ^[?1h - toggles the application cursor keys mode, which changes what control sequences are sent by the server
+
 
 Problems
 ========
