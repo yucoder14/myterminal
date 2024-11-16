@@ -24,7 +24,7 @@ Terminal::Terminal(wxWindow *parent, wxWindowID id, const wxPoint &pos, const wx
 	GetSize(&window_width, &window_height);
 
 	// Set font
-	font_size = 16;
+	font_size = 15;
 	main_cursor_x = 0;
 	main_cursor_y = 0;
 	alt_cursor_x = 0;
@@ -57,7 +57,7 @@ Terminal::Terminal(wxWindow *parent, wxWindowID id, const wxPoint &pos, const wx
 
 	renderTimer = new wxTimer(this, RenderTimerId);
 	this->Bind(wxEVT_TIMER, &Terminal::Timer, this);
-	renderTimer->Start(10); // I don't like this
+	renderTimer->Start(5); // I don't like this
 }
 
 int Terminal::SpawnShell(int *pty_master, int *shell_pid, const char *shell_path, char * argv[]) {
@@ -91,7 +91,6 @@ void Terminal::Render(wxPaintEvent& WXUNUSED(event)) {
 			if (offset < 0) {
 				offset = 0;
 			}
-
 
 			int win_x = 0, win_y = 0;
 			for (auto i = grid->begin() + offset; i != grid->end(); i++) {
@@ -233,8 +232,8 @@ void Terminal::ReSize(wxSizeEvent& event) {
 
 	struct winsize w;
 
-	int new_height = window_height / font_height;
-	int new_width = window_width / font_width;
+	int new_height = window_height / font_height - 1;
+	int new_width = window_width / font_width - 1;
 
 	w.ws_row = new_height;
 	w.ws_col = new_width;
@@ -258,19 +257,19 @@ void Terminal::ReadFromPty(int pty_master, deque<PtyData> *raw_data) {
 				datum.type = BELL;
 				break;
 			case 8:  // backspace
-//				cout << "BACKSPACE" << endl;
+				cout << "BACKSPACE" << endl;
 				datum.type = BACKSPACE;
 				break;
 			case 9: // tabspace
-//				cout << "TAB" << endl;
+				cout << "TAB" << endl;
 				datum.type = TAB;
 				break;
 			case 10: // newline
-//				cout << "NL" << endl;
+				cout << "NL" << endl;
 				datum.type = NEWLINE;
 				break;
 			case 13: // carriage return
-//				cout << "CR" << endl;
+				cout << "CR" << endl;
 				datum.type = CARRAIGE;
 				break;
 			case 27: // escape
@@ -283,7 +282,7 @@ void Terminal::ReadFromPty(int pty_master, deque<PtyData> *raw_data) {
 						ESC = false;
 					} else {
 						ESC = false;
-//						cout << "ESCAPE: " <<  b << endl;
+						cout << "ESCAPE: " <<  b << endl;
 						datum.type = ESCAPE;
 						datum.ansicode.push_back(b);
 					}
@@ -294,11 +293,11 @@ void Terminal::ReadFromPty(int pty_master, deque<PtyData> *raw_data) {
 						datum.type = ANSI;
 						datum.ansicode.swap(tmp);
 						string str(datum.ansicode.begin(), datum.ansicode.end());
-//						cout << "ANSI CODE: " << str << endl;
+						cout << "ANSI CODE: " << str << endl;
 
 					}
 				} else {
-//					cout << b << ", " << (unsigned int)int(b) << endl;
+					cout << b << ", " << (unsigned int)int(b) << endl;
 					datum.type = PRINTABLE;
 					datum.keycode = b;
 				}
@@ -329,10 +328,7 @@ void Terminal::PopulateGrid(PtyData *current, vector<vector<char>> *grid, int *c
 			(*cursor_x)--;
 			break;
 		case TAB:
-			for (int i = 0; i < 4; i++) {
-				grid->at(*cursor_y).insert(grid->at(*cursor_y).begin() + *cursor_x, ' ');
-				(*cursor_x)++;
-			}
+			break;
 		case BELL:
 			break;
 		case CARRAIGE:
@@ -362,6 +358,13 @@ void Terminal::Parse(PtyData ansi, vector<vector<char>>* grid, int *cursor_x, in
 			grid->at(*cursor_y).pop_back();
 			size--;
 		}
+	} else if (str == "H") {
+		// only temporary to simulate clear behavior...
+		*cursor_x = 0;
+		*cursor_y = 0;
+	} else if (str == "J") {
+		// only temporary to simulate clear behavior...
+		grid->clear();
 	} else if (str == "?1049h") {
 		alt_screen = true;
 	} else if (str == "?1049l") {

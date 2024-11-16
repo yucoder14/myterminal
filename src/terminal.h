@@ -53,7 +53,7 @@ private:
 	int shell_pid;
 	int shell_status;
 
-	// cursor position; used to draw text in correct position
+	// Used for indexing through the vectos to add/delete characters
 	int main_cursor_x, main_cursor_y;
 	int alt_cursor_x, alt_cursor_y;
 
