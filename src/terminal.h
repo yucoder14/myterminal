@@ -21,11 +21,15 @@ enum PtyDataType {
 };
 
 struct PtyData {
-public:
 	enum PtyDataType type; 
 	char keycode;
 	vector<char> ansicode;
 };
+
+struct Cell {
+	char keycode; 
+	bool lineBreak;
+};	
 
 class Terminal : public wxWindow {
 public:
@@ -33,11 +37,11 @@ public:
 	wxTimer *renderTimer;
 	static constexpr int RenderTimerId = 1114;
 
-	int SpawnShell(int *pty_master, int *shell_pid, const char * shell_path, char * argv[]);
-	void ReadFromPty(int pty_master, deque<PtyData> *raw_data);
-	void PopulateGrid(PtyData *raw_data, vector<vector<char>> *grid, int *cursor_x, int *cursor_y);
-//	void PopulateGrid(deque<PtyData> *raw_data, vector<vector<char>> *grid, int *cursor_x, int *cursor_y);
-	void Parse(PtyData ansi, vector<vector<char>>* grid, int *cursor_x, int *cursor_y);
+	int SpawnShell(int *ptyMaster, int *shellPid, const char * shellPath, char * argv[]);
+	void ReadFromPty(int ptyMaster, deque<PtyData> *rawData);
+	void PopulateGrid(PtyData *rawData, vector<vector<char>> *grid, int *cursorX, int *cursorY);
+//	void PopulateGrid(deque<PtyData> *rawData, vector<vector<char>> *grid, int *cursorX, int *cursorY);
+	void Parse(PtyData ansi, vector<vector<char>>* grid, int *cursorX, int *cursorY);
 
 	void Render(wxPaintEvent& event);
 	void OnKeyEvent(wxKeyEvent& event);
@@ -46,29 +50,29 @@ public:
 
 private:
 	// widow information 
-	int window_height, window_width;
-	int grid_height, grid_width;
+	int windowHeight, windowWidth;
+	int gridHeight, gridWidth;
 	
 	// shell related stuff
-	int pty_master;
-	int shell_pid;
-	int shell_status;
+	int ptyMaster;
+	int shellPid;
+	int shellStatus;
 
 	// Used for indexing through the vectos to add/delete characters
-	int main_cursor_x, main_cursor_y;
-	int alt_cursor_x, alt_cursor_y;
-	int row_scroll = 0;
+	int mainCursorX, mainCursorY;
+	int altCursorX, altCursorY;
+	int rowScroll = 0;
 
 	// font related stuff
-	int font_size;
-	int font_x, font_y;
-	int font_height, font_width;
+	int fontSize;
+	int fontX, fontY;
+	int fontHeight, fontWidth;
 
-	bool alt_screen = false;
+	bool altScreen = false;
 
-	deque<PtyData> raw_data;
-	vector<vector<char>> main_grid;
-	vector<vector<char>> alt_grid;
+	deque<PtyData> rawData;
+	vector<vector<char>> mainGrid;
+	vector<vector<char>> altGrid;
 
 	char buf[65536];
 	bool space = true;
