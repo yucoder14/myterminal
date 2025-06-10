@@ -47,6 +47,7 @@ public:
 private:
 	// widow information 
 	int window_height, window_width;
+	int grid_height, grid_width;
 	
 	// shell related stuff
 	int pty_master;
@@ -56,6 +57,7 @@ private:
 	// Used for indexing through the vectos to add/delete characters
 	int main_cursor_x, main_cursor_y;
 	int alt_cursor_x, alt_cursor_y;
+	int row_scroll = 0;
 
 	// font related stuff
 	int font_size;

@@ -4,6 +4,7 @@
 #include <iostream>
 #include <string>
 #include <cctype>
+#include <algorithm>
 
 #include <util.h>
 #include <unistd.h>
@@ -19,9 +20,6 @@
 Terminal::Terminal(wxWindow *parent, wxWindowID id, const wxPoint &pos, const wxSize &size)
 : wxWindow(parent, id, pos, size) {
 	this->SetBackgroundStyle(wxBG_STYLE_PAINT);
-
-	// Get window size
-	GetSize(&window_width, &window_height);
 
 	// Set font
 	font_size = 15;
@@ -57,7 +55,7 @@ Terminal::Terminal(wxWindow *parent, wxWindowID id, const wxPoint &pos, const wx
 
 	renderTimer = new wxTimer(this, RenderTimerId);
 	this->Bind(wxEVT_TIMER, &Terminal::Timer, this);
-	renderTimer->Start(5); // I don't like this
+	renderTimer->Start(1); // I don't like this
 }
 
 int Terminal::SpawnShell(int *pty_master, int *shell_pid, const char *shell_path, char * argv[]) {
@@ -65,7 +63,7 @@ int Terminal::SpawnShell(int *pty_master, int *shell_pid, const char *shell_path
 
 	switch (*shell_pid) {
 		case -1:
-			cout << "Cannot fork" << endl;
+			//cout << "Cannot fork" << endl;
 			return -1;
 			break;
 		case 0:
@@ -87,62 +85,26 @@ void Terminal::Render(wxPaintEvent& WXUNUSED(event)) {
 
 		if (alt_screen) {
 			grid = &alt_grid;
-			int offset = grid->size() - int(window_height / font_height);
-			if (offset < 0) {
-				offset = 0;
-			}
-
-			int win_x = 0, win_y = 0;
-			for (auto i = grid->begin() + offset; i != grid->end(); i++) {
-				for (auto j = i->begin(); j != i->end(); j++) {
-					if (win_x * font_width > window_width - font_width) {
-						win_x = 0;
-						win_y++;
-					}
-					int x = win_x * font_width;
-					int y = win_y * font_height;
-					wxUniChar b((int)*j);
-					dc.DrawText(b, x, y);
-					win_x++;
-				}
-				win_x=0;
-				win_y++;
-			}
 		} else {
 			grid = &main_grid;
-			/* 
-				There is no need to calculate the offset value if I draw from bottom right to top left
-			*/
-			int max_col = (int) window_width / font_width;
-			int max_row = (int) window_height/ font_height;
-
-			int win_y = (grid->size() < max_row) ? grid->size() : max_row ; 
-			
-			for (auto i = grid->rbegin(); i != grid->rend(); i++) {
-				if (win_y < 1) {
-					break;
-				} else {	
-					int win_x = (i->size() < max_col) ? i->size() : i->size() % max_col;
-
-					for (auto j = i->rbegin(); j != i->rend(); j++) {
-						if (win_x < 1) {
-							win_x = max_col;
-							win_y--;
-						}
-						int x, y; 
-						x = (win_x - 1) * font_width;
-						y = (win_y - 1) * font_height;
-
-						wxUniChar b((int)*j);
-						dc.DrawText(b, x, y);
-						win_x--;
-					}	
-
-					win_y--;
-				}	
-			}	
 		}
 
+		/* 
+			There is no need to calculate the offset value if I draw from bottom right to top left
+		*/
+		for (auto row_it = grid->begin() + row_scroll; row_it != grid->end(); ++row_it) {
+			for (auto col_it = row_it->begin(); col_it != row_it->end(); ++col_it) {
+				int i, j, x, y;
+
+				i = std::distance(grid->begin(), row_it) - row_scroll;
+				j = std::distance(row_it->begin(), col_it);
+				x = j * font_width;
+				y = i * font_height;
+
+				wxUniChar b((int) *col_it);
+				dc.DrawText(b, x, y);
+			}	
+		}	
 
 		// calculate offset value to print to the last available
 		delete gc;
@@ -211,10 +173,8 @@ void Terminal::Timer(wxTimerEvent& event) {
 				while (!raw_data.empty()) {
 					PtyData cur = raw_data.at(0);
 					if (alt_screen) {
-//						PopulateGrid(&raw_data, &alt_grid, &alt_cursor_x, &alt_cursor_y);
 						PopulateGrid(&cur, &alt_grid, &alt_cursor_x, &alt_cursor_y);
 					} else {
-//						PopulateGrid(&raw_data, &main_grid, &main_cursor_x, &main_cursor_y);
 						PopulateGrid(&cur, &main_grid, &main_cursor_x, &main_cursor_y);
 					}
 					raw_data.pop_front();
@@ -237,6 +197,11 @@ void Terminal::ReSize(wxSizeEvent& event) {
 
 	w.ws_row = new_height;
 	w.ws_col = new_width;
+	grid_height = new_height;
+	grid_width = new_width;
+
+	main_grid.resize(grid_height, vector<char>(grid_width));
+	alt_grid.resize(grid_height, vector<char>(grid_width));
 
 	ioctl(pty_master, TIOCSWINSZ, &w);
 }
@@ -257,19 +222,19 @@ void Terminal::ReadFromPty(int pty_master, deque<PtyData> *raw_data) {
 				datum.type = BELL;
 				break;
 			case 8:  // backspace
-				cout << "BACKSPACE" << endl;
+				//cout << "BACKSPACE" << endl;
 				datum.type = BACKSPACE;
 				break;
 			case 9: // tabspace
-				cout << "TAB" << endl;
+				//cout << "TAB" << endl;
 				datum.type = TAB;
 				break;
 			case 10: // newline
-				cout << "NL" << endl;
+				//cout << "NL" << endl;
 				datum.type = NEWLINE;
 				break;
 			case 13: // carriage return
-				cout << "CR" << endl;
+				//cout << "CR" << endl;
 				datum.type = CARRAIGE;
 				break;
 			case 27: // escape
@@ -282,7 +247,7 @@ void Terminal::ReadFromPty(int pty_master, deque<PtyData> *raw_data) {
 						ESC = false;
 					} else {
 						ESC = false;
-						cout << "ESCAPE: " <<  b << endl;
+						//cout << "ESCAPE: " <<  b << endl;
 						datum.type = ESCAPE;
 						datum.ansicode.push_back(b);
 					}
@@ -293,11 +258,11 @@ void Terminal::ReadFromPty(int pty_master, deque<PtyData> *raw_data) {
 						datum.type = ANSI;
 						datum.ansicode.swap(tmp);
 						string str(datum.ansicode.begin(), datum.ansicode.end());
-						cout << "ANSI CODE: " << str << endl;
+						//cout << "ANSI CODE: " << str << endl;
 
 					}
 				} else {
-					cout << b << ", " << (unsigned int)int(b) << endl;
+					//cout << b << ", " << (unsigned int)int(b) << endl;
 					datum.type = PRINTABLE;
 					datum.keycode = b;
 				}
@@ -313,19 +278,27 @@ void Terminal::ReadFromPty(int pty_master, deque<PtyData> *raw_data) {
 /*
 	Here, I should not iterate through the raw data. I should only take one PtyData and parse it
 */
-void Terminal::PopulateGrid(PtyData *current, vector<vector<char>> *grid, int *cursor_x, int *cursor_y ) {
+void Terminal::PopulateGrid(PtyData *current, vector<vector<char>> *grid, int *cursor_x, int *cursor_y) {
 	if (*cursor_y >= grid->size()) {
 		vector<char> newline;
+		newline.resize(grid_width);
 		grid->push_back(newline);
+		row_scroll++;
 	}
 
 	switch (current->type) {
 		case PRINTABLE:
-			grid->at(*cursor_y).insert(grid->at(*cursor_y).begin() + *cursor_x, current->keycode);
+			(*grid)[*cursor_y][*cursor_x] = current->keycode; 
 			(*cursor_x)++;
+			if (*cursor_x == grid->begin()->size()) {
+				*cursor_x = 0; 
+				(*cursor_y)++;
+			}	
+
 			break;
 		case BACKSPACE:
 			(*cursor_x)--;
+			(*grid)[*cursor_y][*cursor_x] = '\0';
 			break;
 		case TAB:
 			break;
@@ -343,9 +316,6 @@ void Terminal::PopulateGrid(PtyData *current, vector<vector<char>> *grid, int *c
 			Parse(*current, grid, cursor_x, cursor_y);
 			break;
 	}
-
-//		raw_data->pop_front();
-//	}
 }
 
 void Terminal::Parse(PtyData ansi, vector<vector<char>>* grid, int *cursor_x, int *cursor_y) {
@@ -353,11 +323,7 @@ void Terminal::Parse(PtyData ansi, vector<vector<char>>* grid, int *cursor_x, in
 
 	// very basic
 	if (str=="K") {
-		int size = grid->at(*cursor_y).size();
-		while (*cursor_x < size) {
-			grid->at(*cursor_y).pop_back();
-			size--;
-		}
+		grid->at(*cursor_y).resize(grid_width);
 	} else if (str == "H") {
 		// only temporary to simulate clear behavior...
 		*cursor_x = 0;
@@ -365,6 +331,7 @@ void Terminal::Parse(PtyData ansi, vector<vector<char>>* grid, int *cursor_x, in
 	} else if (str == "J") {
 		// only temporary to simulate clear behavior...
 		grid->clear();
+		grid->resize(grid_height, vector<char>(grid_width));
 	} else if (str == "?1049h") {
 		alt_screen = true;
 	} else if (str == "?1049l") {
@@ -372,5 +339,6 @@ void Terminal::Parse(PtyData ansi, vector<vector<char>>* grid, int *cursor_x, in
 		*cursor_x = 0;
 		*cursor_y = 0;
 		grid->clear();
+		grid->resize(grid_height, vector<char>(grid_width));
 	}
 }
