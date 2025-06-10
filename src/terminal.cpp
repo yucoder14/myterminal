@@ -1,23 +1,9 @@
 #include "terminal.h"
-#include "constants.h"
 
-#include <iostream>
-#include <string>
-#include <cctype>
-#include <algorithm>
+/*** Constructor ******************************************************/
 
-#include <util.h>
-#include <unistd.h>
-#include <string.h>
-
-#include <wx/dcbuffer.h>
-#include <wx/unichar.h>
-
-#include <sys/select.h>
-#include <sys/ioctl.h>
-
-
-Terminal::Terminal(wxWindow *parent, wxWindowID id, const wxPoint &pos, const wxSize &size)
+Terminal::Terminal(
+		wxWindow *parent, wxWindowID id, const wxPoint &pos, const wxSize &size)
 : wxWindow(parent, id, pos, size) {
 	this->SetBackgroundStyle(wxBG_STYLE_PAINT);
 
@@ -43,22 +29,28 @@ Terminal::Terminal(wxWindow *parent, wxWindowID id, const wxPoint &pos, const wx
 	// Spawn Shell
 	const char *shellPath = "/bin/bash";
 	const char * argv[] = {NULL};
-	int forkStatus = SpawnShell(&ptyMaster, &shellPid, shellPath, const_cast<char **>(argv));
+	int forkStatus = SpawnShell(
+			&ptyMaster, &shellPid, shellPath, const_cast<char **>(argv));
 
 	if (forkStatus == -1) {
 		Close(true);
 	}
 
+	// Set even handlers
 	this->Bind(wxEVT_PAINT, &Terminal::Render, this);
 	this->Bind(wxEVT_CHAR, &Terminal::OnKeyEvent, this);
 	this->Bind(wxEVT_SIZE, &Terminal::ReSize, this);
 
+	// Start renderTimer 
 	renderTimer = new wxTimer(this, RenderTimerId);
 	this->Bind(wxEVT_TIMER, &Terminal::Timer, this);
 	renderTimer->Start(1); // I don't like this
 }
 
-int Terminal::SpawnShell(int *ptyMaster, int *shellPid, const char *shellPath, char * argv[]) {
+/*** Terminal Related Stuff *******************************************/
+
+int Terminal::SpawnShell(
+		int *ptyMaster, int *shellPid, const char *shellPath, char * argv[]) {
 	*shellPid = forkpty(ptyMaster, nullptr, nullptr, nullptr);
 
 	switch (*shellPid) {
@@ -72,152 +64,6 @@ int Terminal::SpawnShell(int *ptyMaster, int *shellPid, const char *shellPath, c
 	}
 
 	return 1;
-}
-
-void Terminal::Render(wxPaintEvent& WXUNUSED(event)) {
-	wxPaintDC dc(this);
-
-	dc.Clear();
-	wxGraphicsContext *gc = wxGraphicsContext::Create(dc);
-
-	if (gc) {
-		vector<vector<char>>* grid;
-
-		if (altScreen) {
-			grid = &altGrid;
-		} else {
-			grid = &mainGrid;
-		}
-
-		/* 
-			There is no need to calculate the offset value if I draw from bottom right to top left
-		*/
-		cout << gridHeight << " " << gridWidth << endl;
-		for (auto rowIt = grid->begin() + rowScroll; rowIt != grid->end(); ++rowIt) {
-			for (auto colIt = rowIt->begin(); colIt != rowIt->end(); ++colIt) {
-				int i, j, x, y;
-
-				i = std::distance(grid->begin(), rowIt) - rowScroll;
-				j = std::distance(rowIt->begin(), colIt);
-				x = j * fontWidth;
-				y = i * fontHeight;
-
-				wxUniChar b((int) *colIt);
-				dc.DrawText(b, x, y);
-			}	
-		}	
-
-		// calculate offset value to print to the last available
-		delete gc;
-	}
-}
-
-void Terminal::OnKeyEvent(wxKeyEvent& event) {
-	int keycode = event.GetKeyCode();
-	wxLogStatus("Key Event %d", event.GetKeyCode());
-
-	int size = 0;
-	char out[10];
-
-	int toErase = 0;
-
-	switch (keycode) {
-		case WXK_CONTROL_C:
-			out[0] = WXK_CONTROL_C;
-			size++;
-			break;
-		case WXK_RETURN:
-			out[0] = WXK_RETURN;
-			size++;
-			break;
-		case WXK_UP:
-			size+=3;
-			strncpy(out, arrowUp, size);
-			break;
-		case WXK_DOWN:
-			size+=3;
-			strncpy(out, arrowDown, size);
-			break;
-		case WXK_RIGHT:
-			size+=3;
-			strncpy(out, arrowRight, size);
-			break;
-		case WXK_LEFT:
-			size+=3;
-			strncpy(out, arrowLeft, size);
-			break;
-		default:
-			out[0] = keycode;
-			size++;
-			break;
-	}
-
-	write(ptyMaster, &out, (size_t) size);
-}
-
-void Terminal::Timer(wxTimerEvent& event) {
-	int status;
-	if (waitpid(shellPid, &status, WNOHANG) != shellPid) {
-		fd_set reading;
-		struct timeval timeout;
-
-		FD_ZERO(&reading);
-		FD_SET(ptyMaster, &reading);
-		memset(&timeout, 0, sizeof(timeout));
-
-		int rc = select(ptyMaster + 1, &reading, nullptr, nullptr, &timeout);
-
-		if (rc > 0) {
-			if (FD_ISSET(ptyMaster, &reading)) {
-				ReadFromPty(ptyMaster, &rawData);
-				// I should iterate through the raw data here
-				while (!rawData.empty()) {
-					PtyData cur = rawData.at(0);
-					if (altScreen) {
-						PopulateGrid(&cur, &altGrid, &altCursorX, &altCursorY);
-					} else {
-						PopulateGrid(&cur, &mainGrid, &mainCursorX, &mainCursorY);
-					}
-					rawData.pop_front();
-				}
-				Refresh();
-			}
-		}
-	} else {
-		renderTimer->Stop();
-	}
-}
-
-void Terminal::ReSize(wxSizeEvent& event) {
-	GetSize(&windowWidth, &windowHeight);
-
-	struct winsize w;
-
-	int newHeight = windowHeight / fontHeight;
-	int newWidth = windowWidth / fontWidth;
-
-	w.ws_row = newHeight;
-	w.ws_col = newWidth;
-	gridHeight = newHeight;
-	gridWidth = newWidth;
-
-	vector<vector<char>> *grid;
-
-	if (altScreen) {
-		grid = &altGrid;
-	} else {	
-		grid = &mainGrid;
-	}	
-
-	// TODO: correctly resize the screen, it is not enough to just 
-	// resize the grid; i must temporarily save the previous grid; 
-	// resize the grid and correctly handle line wrapping...; as of 
-	// now there is no way for me to distinguish between line breaks
-	// and new lines 
-//	grid->clear();
-	grid->resize(gridHeight, vector<char>(gridWidth));
-
-	ioctl(ptyMaster, TIOCSWINSZ, &w);
 }
 
 void Terminal::ReadFromPty(int ptyMaster, deque<PtyData> *rawData) {
@@ -288,12 +134,10 @@ void Terminal::ReadFromPty(int ptyMaster, deque<PtyData> *rawData) {
 	}
 }
 
-/*
-	Here, I should not iterate through the raw data. I should only take one PtyData and parse it
-*/
-void Terminal::PopulateGrid(PtyData *current, vector<vector<char>> *grid, int *cursorX, int *cursorY) {
+void Terminal::PopulateGrid(
+		PtyData *current, vector<vector<Cell>> *grid, int *cursorX, int *cursorY) {
 	if (*cursorY >= grid->size()) {
-		vector<char> newline;
+		vector<Cell> newline;
 		newline.resize(gridWidth);
 		grid->push_back(newline);
 		rowScroll++;
@@ -301,11 +145,12 @@ void Terminal::PopulateGrid(PtyData *current, vector<vector<char>> *grid, int *c
 
 	switch (current->type) {
 		case PRINTABLE:
-			(*grid)[*cursorY][*cursorX] = current->keycode; 
+			(*grid)[*cursorY][*cursorX].keycode = current->keycode; 
 			(*cursorX)++;
 			if (*cursorX == grid->begin()->size()) {
-				*cursorX = 0; 
 				(*cursorY)++;
+				*cursorX = 0; 
+				(*grid)[*cursorY][*cursorX].lineBreak = true;
 			}	
 
 			break;
@@ -330,14 +175,15 @@ void Terminal::PopulateGrid(PtyData *current, vector<vector<char>> *grid, int *c
 	}
 }
 
-void Terminal::Parse(PtyData ansi, vector<vector<char>>* grid, int *cursorX, int *cursorY) {
+void Terminal::Parse(
+		PtyData ansi, vector<vector<Cell>>* grid, int *cursorX, int *cursorY) {
 	string str(ansi.ansicode.begin(), ansi.ansicode.end());
 
 	// very basic
 	if (str=="K") {
 		for (auto colIt = grid->at(*cursorY).begin() + *cursorX; 
 				colIt != grid->at(*cursorY).end(); ++colIt) { 
-			(*grid)[*cursorY][*cursorX] = '\0';
+			(*grid)[*cursorY][*cursorX].keycode = '\0';
 		}	
 	} else if (str == "H") {
 		// only temporary to simulate clear behavior...
@@ -346,7 +192,7 @@ void Terminal::Parse(PtyData ansi, vector<vector<char>>* grid, int *cursorX, int
 	} else if (str == "J") {
 		// only temporary to simulate clear behavior...
 		grid->clear();
-		grid->resize(gridHeight, vector<char>(gridWidth));
+		grid->resize(gridHeight, vector<Cell>(gridWidth));
 	} else if (str == "?1049h") {
 		altScreen = true;
 	} else if (str == "?1049l") {
@@ -354,6 +200,156 @@ void Terminal::Parse(PtyData ansi, vector<vector<char>>* grid, int *cursorX, int
 		*cursorX = 0;
 		*cursorY = 0;
 		grid->clear();
-		grid->resize(gridHeight, vector<char>(gridWidth));
+		grid->resize(gridHeight, vector<Cell>(gridWidth));
 	}
+}
+
+/*** Rendering and Event Handling ************************************/
+
+void Terminal::Render(wxPaintEvent& WXUNUSED(event)) {
+	wxPaintDC dc(this);
+
+	dc.Clear();
+	wxGraphicsContext *gc = wxGraphicsContext::Create(dc);
+
+	if (gc) {
+		vector<vector<Cell>>* grid;
+
+		if (altScreen) {
+			grid = &altGrid;
+		} else {
+			grid = &mainGrid;
+		}
+
+		for (auto rowIt = grid->begin() + rowScroll; rowIt != grid->end(); ++rowIt) {
+			for (auto colIt = rowIt->begin(); colIt != rowIt->end(); ++colIt) {
+				int i, j, x, y;
+
+				i = std::distance(grid->begin(), rowIt) - rowScroll;
+				j = std::distance(rowIt->begin(), colIt);
+				x = j * fontWidth;
+				y = i * fontHeight;
+
+				wxUniChar b((int) colIt->keycode);
+				dc.DrawText(b, x, y);
+			}	
+		}	
+
+		delete gc;
+	}
+}
+
+void Terminal::OnKeyEvent(wxKeyEvent& event) {
+	int keycode = event.GetKeyCode();
+	wxLogStatus("Key Event %d", event.GetKeyCode());
+
+	int size = 0;
+	char out[10]; // this is prone to buffer overflow --> change to vector
+
+	int toErase = 0;
+
+	switch (keycode) {
+		case WXK_CONTROL_C:
+			out[0] = WXK_CONTROL_C;
+			size++;
+			break;
+		case WXK_RETURN:
+			out[0] = WXK_RETURN;
+			size++;
+			break;
+		case WXK_UP:
+			size+=3;
+			strncpy(out, arrowUp, size);
+			break;
+		case WXK_DOWN:
+			size+=3;
+			strncpy(out, arrowDown, size);
+			break;
+		case WXK_RIGHT:
+			size+=3;
+			strncpy(out, arrowRight, size);
+			break;
+		case WXK_LEFT:
+			size+=3;
+			strncpy(out, arrowLeft, size);
+			break;
+		default:
+			out[0] = keycode;
+			size++;
+			break;
+	}
+
+	write(ptyMaster, &out, (size_t) size);
+}
+
+void Terminal::Timer(wxTimerEvent& event) {
+	int status;
+	if (waitpid(shellPid, &status, WNOHANG) != shellPid) {
+		fd_set reading;
+		struct timeval timeout;
+
+		FD_ZERO(&reading);
+		FD_SET(ptyMaster, &reading);
+		memset(&timeout, 0, sizeof(timeout));
+
+		int rc = select(ptyMaster + 1, &reading, nullptr, nullptr, &timeout);
+		if (rc > 0) {
+			vector<vector<Cell>> *grid;
+			int *cursorX, *cursorY;
+
+			if (altScreen) {
+				grid = &altGrid;
+				cursorX = &altCursorX;
+				cursorY = &altCursorY;
+			} else {	
+				grid = &mainGrid;
+				cursorX = &mainCursorX;
+				cursorY = &mainCursorY;
+			}	
+
+			if (FD_ISSET(ptyMaster, &reading)) {
+				ReadFromPty(ptyMaster, &rawData);
+				while (!rawData.empty()) {
+					PtyData cur = rawData.at(0);
+					PopulateGrid(&cur, grid, cursorX, cursorY);
+					rawData.pop_front();
+				}
+				Refresh();
+			}
+		}
+	} else {
+		renderTimer->Stop();
+	}
+}
+
+void Terminal::ReSize(wxSizeEvent& event) {
+	GetSize(&windowWidth, &windowHeight);
+
+	struct winsize w;
+
+	int newHeight = windowHeight / fontHeight;
+	int newWidth = windowWidth / fontWidth;
+
+	w.ws_row = newHeight;
+	w.ws_col = newWidth;
+	gridHeight = newHeight;
+	gridWidth = newWidth;
+
+	vector<vector<Cell>> *grid;
+
+	if (altScreen) {
+		grid = &altGrid;
+	} else {	
+		grid = &mainGrid;
+	}	
+	
+	// TODO: correctly resize the screen, it is not enough to just 
+	// resize the grid; i must temporarily save the previous grid; 
+	// resize the grid and correctly handle line wrapping...; as of 
+	// now there is no way for me to distinguish between line breaks
+	// and new lines 
+//	grid->clear();
+	grid->resize(gridHeight, vector<Cell>(gridWidth));
+
+	ioctl(ptyMaster, TIOCSWINSZ, &w);
 }
