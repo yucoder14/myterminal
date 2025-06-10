@@ -24,6 +24,7 @@ using namespace std;
 
 #include "constants.h"
 #include "ptyData.h"
+using namespace PTY;
 #include "cell.h"
 
 class Terminal : public wxWindow {

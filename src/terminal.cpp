@@ -66,6 +66,15 @@ int Terminal::SpawnShell(
 	return 1;
 }
 
+void Terminal::SetGrid(
+		vector<vector<Cell>> *grid, int *cursorX, int *cursorY) {
+	if (altScreen) {		
+		grid = &altGrid;	
+	} else {	
+		grid = &mainGrid;	
+	}	
+}	
+
 void Terminal::ReadFromPty(int ptyMaster, deque<PtyData> *rawData) {
 	int bytesRead = read(ptyMaster, buf, sizeof(buf));
 
@@ -75,61 +84,11 @@ void Terminal::ReadFromPty(int ptyMaster, deque<PtyData> *rawData) {
 	bool CSI = false;
 
 	for (int i = 0; i < bytesRead; i++) {
-		PtyData datum;
+		PtyData data;
 		char b = buf[i];
-		switch (b) {
-			case 7:	// bell
-				datum.type = BELL;
-				break;
-			case 8:  // backspace
-				//cout << "BACKSPACE" << endl;
-				datum.type = BACKSPACE;
-				break;
-			case 9: // tabspace
-				//cout << "TAB" << endl;
-				datum.type = TAB;
-				break;
-			case 10: // newline
-				//cout << "NL" << endl;
-				datum.type = NEWLINE;
-				break;
-			case 13: // carriage return
-				//cout << "CR" << endl;
-				datum.type = CARRAIGE;
-				break;
-			case 27: // escape
-				ESC = true;
-				break;
-			default:
-				if (ESC) {
-					if (b == '[') {
-						CSI = true;;
-						ESC = false;
-					} else {
-						ESC = false;
-						//cout << "ESCAPE: " <<  b << endl;
-						datum.type = ESCAPE;
-						datum.ansicode.push_back(b);
-					}
-				} else if (CSI) {
-					tmp.push_back(b);
-					if (isalpha(b)) {
-						CSI = false;
-						datum.type = ANSI;
-						datum.ansicode.swap(tmp);
-						string str(datum.ansicode.begin(), datum.ansicode.end());
-						//cout << "ANSI CODE: " << str << endl;
-					}
-				} else {
-					//cout << b << ", " << (unsigned int)int(b) << endl;
-					datum.type = PRINTABLE;
-					datum.keycode = b;
-				}
-				break;
-		}
-
+		GetPtyData(&data, b, &tmp, &ESC, &CSI);
 		if (!ESC && !CSI) {
-			(*rawData).push_back(datum);
+			(*rawData).push_back(data);
 		}
 	}
 }
@@ -152,7 +111,6 @@ void Terminal::PopulateGrid(
 				*cursorX = 0; 
 				(*grid)[*cursorY][*cursorX].lineBreak = true;
 			}	
-
 			break;
 		case BACKSPACE:
 			(*cursorX)--;
