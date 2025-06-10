@@ -9,27 +9,8 @@
 
 using namespace std;
 
-enum PtyDataType {
-	PRINTABLE,
-	BACKSPACE,
-	TAB,
-	BELL,
-	CARRAIGE,
-	NEWLINE,
-	ESCAPE,
-	ANSI
-};
-
-struct PtyData {
-	enum PtyDataType type; 
-	char keycode;
-	vector<char> ansicode;
-};
-
-struct Cell {
-	char keycode; 
-	bool lineBreak;
-};	
+#include "ptyData.h"
+#include "cell.h"
 
 class Terminal : public wxWindow {
 public:
