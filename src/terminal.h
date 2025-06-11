@@ -35,8 +35,8 @@ using namespace PTY;
 	Terminal's main job is to just relay information between the shell and 
 	the grid. Any movement of cursors or scrolling is only a consequences of 
 	the information relay. In other words, it is grid's job to decide what
-	to do with the data upon receiving it from the Terminal.
-
+	to do with the data upon receiving them from the Terminal. --> not finalized,
+	but it sounds like a reasonable design choice.
 */
 class Terminal : public wxWindow {
 public:
