@@ -86,22 +86,22 @@ void Terminal::ReadFromPty(int ptyMaster, deque<PtyData> *rawData) {
 	for (int i = 0; i < bytesRead; i++) {
 		PtyData data;
 		char b = buf[i];
-		GetPtyData(&data, b, &tmp, &ESC, &CSI);
+		PTY::GetPtyData(&data, b, &tmp, &ESC, &CSI);
 		if (!ESC && !CSI) {
 			(*rawData).push_back(data);
 		}
 	}
 }
 
+void Terminal::AddNewLine(vector<vector<Cell>> *grid) {
+	vector<Cell> newline;
+	newline.resize(gridWidth);
+	grid->push_back(newline);
+	rowScroll++;
+}	
+
 void Terminal::PopulateGrid(
 		PtyData *current, vector<vector<Cell>> *grid, int *cursorX, int *cursorY) {
-	if (*cursorY >= grid->size()) {
-		vector<Cell> newline;
-		newline.resize(gridWidth);
-		grid->push_back(newline);
-		rowScroll++;
-	}
-
 	switch (current->type) {
 		case PRINTABLE:
 			(*grid)[*cursorY][*cursorX].keycode = current->keycode; 
@@ -109,6 +109,7 @@ void Terminal::PopulateGrid(
 			if (*cursorX == grid->begin()->size()) {
 				(*cursorY)++;
 				*cursorX = 0; 
+				AddNewLine(grid);
 				(*grid)[*cursorY][*cursorX].lineBreak = true;
 			}	
 			break;
@@ -123,7 +124,12 @@ void Terminal::PopulateGrid(
 			(*cursorX) = 0;
 			break;
 		case NEWLINE:
-			(*cursorY)++;
+			{ 
+				(*cursorY)++; 
+				if (*cursorY == grid->size()) {
+					AddNewLine(grid);
+				}	
+			}
 			break;
 		case ESCAPE:
 			break;
@@ -144,13 +150,19 @@ void Terminal::Parse(
 			(*grid)[*cursorY][*cursorX].keycode = '\0';
 		}	
 	} else if (str == "H") {
-		// only temporary to simulate clear behavior...
+		// only temporary to simulate clear behavior... 
 		*cursorX = 0;
 		*cursorY = 0;
 	} else if (str == "J") {
-		// only temporary to simulate clear behavior...
-		grid->clear();
-		grid->resize(gridHeight, vector<Cell>(gridWidth));
+		// only temporary to simulate clear behavior... --> this is fucked
+		cout << grid->size() << endl;
+//		for (int i = 0; i < gridHeight; i++) {
+//			vector<Cell> newline;
+//			newline.resize(gridWidth);
+//			grid->push_back(newline);
+//			rowScroll += 1;
+//			*cursorY += 1;
+//		}	
 	} else if (str == "?1049h") {
 		altScreen = true;
 	} else if (str == "?1049l") {
@@ -306,6 +318,7 @@ void Terminal::ReSize(wxSizeEvent& event) {
 	// resize the grid and correctly handle line wrapping...; as of 
 	// now there is no way for me to distinguish between line breaks
 	// and new lines 
+	int numRows = grid->size();
 //	grid->clear();
 	grid->resize(gridHeight, vector<Cell>(gridWidth));
 

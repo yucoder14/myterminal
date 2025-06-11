@@ -34,7 +34,9 @@ public:
 	static constexpr int RenderTimerId = 1114;
 
 	int SpawnShell(int *ptyMaster, int *shellPid, const char * shellPath, char * argv[]);
+	void AddNewLine(vector<vector<Cell>> *grid);
 	void SetGrid(vector<vector<Cell>> *grid, int *cursorX, int *cursorY);
+
 	void ReadFromPty(int ptyMaster, deque<PtyData> *rawData);
 	void PopulateGrid(PtyData *rawData, vector<vector<Cell>> *grid, int *cursorX, int *cursorY);
 	void Parse(PtyData ansi, vector<vector<Cell>>* grid, int *cursorX, int *cursorY);
