@@ -4,6 +4,13 @@
 
 using namespace std;
 
+/*
+	All the PTY (psuedo terminal) related things reside here. 
+	When terminal reads data from the shell, the data is "tokenized" 
+	and stored in the struct PtyData. Then, the Terminal will relay 
+	this information to the grid to figure out how it's suppose to 
+	format the data, such that it is screen ready.
+*/
 namespace PTY {
 	typedef struct PtyData PtyData;
 
