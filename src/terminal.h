@@ -23,9 +23,9 @@
 using namespace std;
 
 #include "constants.h"
-#include "ptyData.h"
+#include "backend.h"
 using namespace PTY;
-#include "cell.h"
+using namespace GRID;
 
 /*
 	In general, the Terminal class's main job is connect the pty with 
@@ -46,9 +46,9 @@ public:
 
 	int SpawnShell(int *ptyMaster, int *shellPid, const char * shellPath, char * argv[]);
 	void SetGrid(vector<vector<Cell>> *grid, int *cursorX, int *cursorY);
-//	void SetGrid(Grid *grid);
+//	void SetGrid(Grid *grid); 
 	void AddNewLine(vector<vector<Cell>> *grid);
-//	void AddNewLine(Grid *grid);
+//	void AddNewLine(Grid *grid); --> this should be a grid method, not a terminal method!
 
 	void ReadFromPty(int ptyMaster, deque<PtyData> *rawData);
 	void PopulateGrid(PtyData *rawData, vector<vector<Cell>> *grid, int *cursorX, int *cursorY);

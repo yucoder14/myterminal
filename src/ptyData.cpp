@@ -1,4 +1,4 @@
-#include "ptyData.h"
+#include "backend.h"
 
 void PTY::GetPtyData(PtyData *data, char b, vector<char> *tmp, bool *ESC, bool *CSI) {
 	switch (b) {

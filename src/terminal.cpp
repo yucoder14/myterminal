@@ -7,22 +7,21 @@ Terminal::Terminal(
 : wxWindow(parent, id, pos, size) {
 	this->SetBackgroundStyle(wxBG_STYLE_PAINT);
 
-	// Set font
-	fontSize = 15;
+	// initialize grids and cursors
 	mainCursorX = 0;
 	mainCursorY = 0;
 	altCursorX = 0;
 	altCursorY = 0;
 
+	// Set font
+	fontSize = 15;
 	SetFont(wxFont(
 		fontSize,
 		wxFONTFAMILY_TELETYPE,
 		wxFONTSTYLE_NORMAL,
 		wxFONTWEIGHT_NORMAL
 	));
-
 	wxSize dim = GetFont().GetPixelSize();
-
 	fontHeight = dim.GetHeight();
 	fontWidth = dim.GetWidth();
 
@@ -86,7 +85,7 @@ void Terminal::ReadFromPty(int ptyMaster, deque<PtyData> *rawData) {
 	for (int i = 0; i < bytesRead; i++) {
 		PtyData data;
 		char b = buf[i];
-		PTY::GetPtyData(&data, b, &tmp, &ESC, &CSI);
+		GetPtyData(&data, b, &tmp, &ESC, &CSI);
 		if (!ESC && !CSI) {
 			(*rawData).push_back(data);
 		}
@@ -102,6 +101,7 @@ void Terminal::AddNewLine(vector<vector<Cell>> *grid) {
 
 void Terminal::PopulateGrid(
 		PtyData *current, vector<vector<Cell>> *grid, int *cursorX, int *cursorY) {
+	// this switch statement can be a Grid method
 	switch (current->type) {
 		case PRINTABLE:
 			(*grid)[*cursorY][*cursorX].keycode = current->keycode; 
@@ -134,7 +134,7 @@ void Terminal::PopulateGrid(
 		case ESCAPE:
 			break;
 		case ANSI:
-			Parse(*current, grid, cursorX, cursorY);
+			Parse(*current, grid, cursorX, cursorY); // i feel like there should be separate thing for ansi codes...
 			break;
 	}
 }
@@ -143,7 +143,8 @@ void Terminal::Parse(
 		PtyData ansi, vector<vector<Cell>>* grid, int *cursorX, int *cursorY) {
 	string str(ansi.ansicode.begin(), ansi.ansicode.end());
 
-	// very basic
+	// very basic ... i feel like theses should be function pointers at some point down the line
+	// maybe like a hash table of function pointers ? 
 	if (str=="K") {
 		for (auto colIt = grid->at(*cursorY).begin() + *cursorX; 
 				colIt != grid->at(*cursorY).end(); ++colIt) { 
@@ -302,7 +303,8 @@ void Terminal::ReSize(wxSizeEvent& event) {
 
 	w.ws_row = newHeight;
 	w.ws_col = newWidth;
-	gridHeight = newHeight;
+	gridHeight = newHeight; // might not need to set it, since 
+							// the rows of the grid will be growing 
 	gridWidth = newWidth;
 
 	vector<vector<Cell>> *grid;
