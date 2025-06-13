@@ -148,7 +148,8 @@ void Terminal::Parse(
 	if (str=="K") {
 		for (auto colIt = grid->at(*cursorY).begin() + *cursorX; 
 				colIt != grid->at(*cursorY).end(); ++colIt) { 
-			(*grid)[*cursorY][*cursorX].keycode = '\0';
+			colIt->keycode = '\0';
+//			(*grid)[*cursorY][*cursorX].keycode = '\0';
 		}	
 	} else if (str == "H") {
 		// only temporary to simulate clear behavior... 
@@ -192,6 +193,8 @@ void Terminal::Render(wxPaintEvent& WXUNUSED(event)) {
 			grid = &mainGrid;
 		}
 
+//		for (int i = 0; i < renderGrid.height; i++) { 
+//			for (auto j = 0; j < renderGrid.width; j++) {
 		for (auto rowIt = grid->begin() + rowScroll; rowIt != grid->end(); ++rowIt) {
 			for (auto colIt = rowIt->begin(); colIt != rowIt->end(); ++colIt) {
 				int i, j, x, y;
@@ -201,7 +204,9 @@ void Terminal::Render(wxPaintEvent& WXUNUSED(event)) {
 				x = j * fontWidth;
 				y = i * fontHeight;
 
+//				wxUniChar b((int) GetRenderGridElement(i, j);
 				wxUniChar b((int) colIt->keycode);
+//				dc.DrawText(b, j * fontWidth, i * fontHeight);
 				dc.DrawText(b, x, y);
 			}	
 		}	
@@ -280,6 +285,7 @@ void Terminal::Timer(wxTimerEvent& event) {
 
 			if (FD_ISSET(ptyMaster, &reading)) {
 				ReadFromPty(ptyMaster, &rawData);
+//				FormatRawData(&rawData);
 				while (!rawData.empty()) {
 					PtyData cur = rawData.at(0);
 					PopulateGrid(&cur, grid, cursorX, cursorY);
@@ -307,6 +313,7 @@ void Terminal::ReSize(wxSizeEvent& event) {
 							// the rows of the grid will be growing 
 	gridWidth = newWidth;
 
+	//ResizeRenderGrid(newHeight, newWidth);
 	vector<vector<Cell>> *grid;
 
 	if (altScreen) {
