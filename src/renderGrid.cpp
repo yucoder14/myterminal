@@ -1,18 +1,40 @@
 #include "backend.h" 
 
 using namespace GRID;
+int GRID::RenderGrid::GetRenderGridHeight() {
+	return renderGridHeight; 
+}	
 
-Cell *GRID::RenderGrid::GetRenderGridElement(int renderCursorX, int renderCursorY) {
+int GRID::RenderGrid::GetRenderGridiWidth() {
+	return renderGridWidth;
+}	
+
+Cell *GRID::RenderGrid::GetRenderGridElement(
+		int renderCursorX, int renderCursorY) {
 	// do some index arithmetics here 
 	int cursorX, cursorY;
+
+	cursorX = renderCursorX;
+	cursorY = renderCursorY;
+
 	return renderGrid->GetGridElement(cursorX, cursorY);	
 }	
 
+void GRID::RenderGrid::GetRenderGridDimensions(int *height, int *width) {
+	*height = renderGrid->GetNumRows();	
+	*width = renderGrid->GetNumCols();
+}	
+
+void GRID::RenderGrid::MoveRenderCursor(int row, int col) {
+	renderCursorX = col; 
+	renderCursorY = row;
+}	
+
 void GRID::RenderGrid::ToggleAltGrid() {	 
-	if (renderGrid == mainGrid) {
-		renderGrid = altGrid;
+	if (renderGrid == &mainGrid) {
+		renderGrid = &altGrid;
 	} else {	
-		renderGrid = mainGrid;
+		renderGrid = &mainGrid;
 	}	
 }	
 
@@ -27,8 +49,7 @@ void GRID::RenderGrid::ParseAnsiCode(PtyData *ansi) {
 			colIt->keycode = '\0';
 		}	
 	} else if (str == "H") {
-		renderCursorX = 0;
-		renderCursorY = 0;
+		MoveRenderCursor(0, 0);
 	} else if (str == "J") {
 		// only temporary to simulate clear behavior... --> this is fucked
 		cout << renderGrid->GetNumRows() << endl;
@@ -91,7 +112,6 @@ void GRID::RenderGrid::SetRenderGridElement(PtyData *data) {
 	
 }	
 
-
 void GRID::RenderGrid::FormatRawData(deque<PtyData> *rawData) {
 	while (!rawData->empty()) {
 		PtyData data = rawData->at(0);
@@ -101,5 +121,9 @@ void GRID::RenderGrid::FormatRawData(deque<PtyData> *rawData) {
 }	
 
 void GRID::RenderGrid::ResizeRenderGrid(int rows, int cols) {
-	 
+	renderGridHeight = rows; 
+	renderGridWidth = cols;
+
+	mainGrid.ResizeGrid(rows, cols); 
+	altGrid.ResizeGrid(rows, cols); 
 }	

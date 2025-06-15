@@ -1,5 +1,6 @@
 #include <string>
 #include <vector>
+#include <tuple>
 #include <deque>
 #include <iostream>
 
@@ -57,7 +58,7 @@ namespace GRID {
 		The Terminal should not directly "see" indiviual cells!
 	*/
 	struct Cell {
-		char keycode; 
+		char keycode = 0; 
 		bool lineBreak = false;
 	};	
 
@@ -88,6 +89,7 @@ namespace GRID {
 		not happen often, this approach is more favorable...); in order to resize
 		the window, I have to go through every row of the Grid, even if it may not
 		end up on the screen...	
+		- but considering that the cha
 	*/
 	class Grid {
 	public: 
@@ -142,14 +144,18 @@ namespace GRID {
 	class RenderGrid {
 	public:
 		RenderGrid(int rows, int cols) {
+			mainGrid.ResizeGrid(rows, cols);
+			altGrid.ResizeGrid(rows, cols);
 			renderGridHeight = rows;
 			renderGridWidth = cols;
-			*mainGrid = Grid(rows, cols);
-			*altGrid = Grid(rows, cols);
-			renderGrid = mainGrid;
+			renderGrid = &mainGrid;
 		}	
+
+		int GetRenderGridHeight();
+		int GetRenderGridiWidth();
 		Cell *GetRenderGridElement(int renderCursorX, int renderCursorY);
-	
+		void GetRenderGridDimensions(int *height, int *width);
+
 		void SetRenderGridElement(PtyData *data);
 
 		void MoveRenderCursor(int row, int col);
@@ -161,8 +167,8 @@ namespace GRID {
 
 	private:
 //		Cursor cursor; --> to indicate where the cursor 
-		Grid *mainGrid;
-		Grid *altGrid;
+		Grid mainGrid = Grid(0, 0);
+		Grid altGrid = Grid(0, 0);
 		Grid *renderGrid;
 
 		// these values should be screen coordinates

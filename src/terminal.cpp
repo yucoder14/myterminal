@@ -6,13 +6,13 @@ Terminal::Terminal(
 		wxWindow *parent, wxWindowID id, const wxPoint &pos, const wxSize &size)
 : wxWindow(parent, id, pos, size) {
 	this->SetBackgroundStyle(wxBG_STYLE_PAINT);
-
+	GetSize(&windowWidth, &windowHeight);
 	// initialize grids and cursors
-	mainCursorX = 0;
-	mainCursorY = 0;
-	altCursorX = 0;
-	altCursorY = 0;
-
+	grid.ResizeRenderGrid(windowHeight, windowWidth);	
+	int width, height;
+	grid.GetRenderGridDimensions(&height, &width);
+	cout << width << " " << height << endl;
+	
 	// Set font
 	fontSize = 15;
 	SetFont(wxFont(
@@ -43,13 +43,13 @@ Terminal::Terminal(
 	// Start renderTimer 
 	renderTimer = new wxTimer(this, RenderTimerId);
 	this->Bind(wxEVT_TIMER, &Terminal::Timer, this);
-	renderTimer->Start(1); // I don't like this
+	renderTimer->Start(10); // I don't like this
 }
 
 /*** Terminal Related Stuff *******************************************/
 
 int Terminal::SpawnShell(
-		int *ptyMaster, int *shellPid, const char *shellPath, char * argv[]) {
+	int *ptyMaster, int *shellPid, const char *shellPath, char * argv[]) {
 	*shellPid = forkpty(ptyMaster, nullptr, nullptr, nullptr);
 
 	switch (*shellPid) {
@@ -64,15 +64,6 @@ int Terminal::SpawnShell(
 
 	return 1;
 }
-
-void Terminal::SetGrid(
-		vector<vector<Cell>> *grid, int *cursorX, int *cursorY) {
-	if (altScreen) {		
-		grid = &altGrid;	
-	} else {	
-		grid = &mainGrid;	
-	}	
-}	
 
 void Terminal::ReadFromPty(int ptyMaster, deque<PtyData> *rawData) {
 	int bytesRead = read(ptyMaster, buf, sizeof(buf));
@@ -92,89 +83,6 @@ void Terminal::ReadFromPty(int ptyMaster, deque<PtyData> *rawData) {
 	}
 }
 
-void Terminal::AddNewLine(vector<vector<Cell>> *grid) {
-	vector<Cell> newline;
-	newline.resize(gridWidth);
-	grid->push_back(newline);
-	rowScroll++;
-}	
-
-void Terminal::PopulateGrid(
-		PtyData *current, vector<vector<Cell>> *grid, int *cursorX, int *cursorY) {
-	// this switch statement can be a Grid method
-	switch (current->type) {
-		case PRINTABLE:
-			(*grid)[*cursorY][*cursorX].keycode = current->keycode; 
-			(*cursorX)++;
-			if (*cursorX == grid->begin()->size()) {
-				(*cursorY)++;
-				*cursorX = 0; 
-				AddNewLine(grid);
-				(*grid)[*cursorY][*cursorX].lineBreak = true;
-			}	
-			break;
-		case BACKSPACE:
-			(*cursorX)--;
-			break;
-		case TAB:
-			break;
-		case BELL:
-			break;
-		case CARRAIGE:
-			(*cursorX) = 0;
-			break;
-		case NEWLINE:
-			{ 
-				(*cursorY)++; 
-				if (*cursorY == grid->size()) {
-					AddNewLine(grid);
-				}	
-			}
-			break;
-		case ESCAPE:
-			break;
-		case ANSI:
-			Parse(*current, grid, cursorX, cursorY); // i feel like there should be separate thing for ansi codes...
-			break;
-	}
-}
-
-void Terminal::Parse(
-		PtyData ansi, vector<vector<Cell>>* grid, int *cursorX, int *cursorY) {
-	string str(ansi.ansicode.begin(), ansi.ansicode.end());
-
-	// very basic ... i feel like theses should be function pointers at some point down the line
-	// maybe like a hash table of function pointers ? 
-	if (str=="K") {
-		for (auto colIt = grid->at(*cursorY).begin() + *cursorX; 
-				colIt != grid->at(*cursorY).end(); ++colIt) { 
-			colIt->keycode = '\0';
-//			(*grid)[*cursorY][*cursorX].keycode = '\0';
-		}	
-	} else if (str == "H") {
-		// only temporary to simulate clear behavior... 
-		*cursorX = 0;
-		*cursorY = 0;
-	} else if (str == "J") {
-		// only temporary to simulate clear behavior... --> this is fucked
-		cout << grid->size() << endl;
-//		for (int i = 0; i < gridHeight; i++) {
-//			vector<Cell> newline;
-//			newline.resize(gridWidth);
-//			grid->push_back(newline);
-//			rowScroll += 1;
-//			*cursorY += 1;
-//		}	
-	} else if (str == "?1049h") {
-		altScreen = true;
-	} else if (str == "?1049l") {
-		altScreen = false;
-		*cursorX = 0;
-		*cursorY = 0;
-		grid->clear();
-		grid->resize(gridHeight, vector<Cell>(gridWidth));
-	}
-}
 
 /*** Rendering and Event Handling ************************************/
 
@@ -185,31 +93,18 @@ void Terminal::Render(wxPaintEvent& WXUNUSED(event)) {
 	wxGraphicsContext *gc = wxGraphicsContext::Create(dc);
 
 	if (gc) {
-		vector<vector<Cell>>* grid;
-
-		if (altScreen) {
-			grid = &altGrid;
-		} else {
-			grid = &mainGrid;
-		}
-
-//		for (int i = 0; i < renderGrid.height; i++) { 
-//			for (auto j = 0; j < renderGrid.width; j++) {
-		for (auto rowIt = grid->begin() + rowScroll; rowIt != grid->end(); ++rowIt) {
-			for (auto colIt = rowIt->begin(); colIt != rowIt->end(); ++colIt) {
-				int i, j, x, y;
-
-				i = std::distance(grid->begin(), rowIt) - rowScroll;
-				j = std::distance(rowIt->begin(), colIt);
+		for (int i = 0; i < grid.GetRenderGridHeight(); i++) { 
+			for (auto j = 0; j < grid.GetRenderGridiWidth(); j++) {
+				int x, y;
+				
 				x = j * fontWidth;
 				y = i * fontHeight;
+				char keycode = grid.GetRenderGridElement(i, j)->keycode;
 
-//				wxUniChar b((int) GetRenderGridElement(i, j);
-				wxUniChar b((int) colIt->keycode);
-//				dc.DrawText(b, j * fontWidth, i * fontHeight);
+				wxUniChar b((int) keycode);
 				dc.DrawText(b, x, y);
-			}	
-		}	
+			}
+		}
 
 		delete gc;
 	}
@@ -270,27 +165,9 @@ void Terminal::Timer(wxTimerEvent& event) {
 
 		int rc = select(ptyMaster + 1, &reading, nullptr, nullptr, &timeout);
 		if (rc > 0) {
-			vector<vector<Cell>> *grid;
-			int *cursorX, *cursorY;
-
-			if (altScreen) {
-				grid = &altGrid;
-				cursorX = &altCursorX;
-				cursorY = &altCursorY;
-			} else {	
-				grid = &mainGrid;
-				cursorX = &mainCursorX;
-				cursorY = &mainCursorY;
-			}	
-
 			if (FD_ISSET(ptyMaster, &reading)) {
 				ReadFromPty(ptyMaster, &rawData);
-//				FormatRawData(&rawData);
-				while (!rawData.empty()) {
-					PtyData cur = rawData.at(0);
-					PopulateGrid(&cur, grid, cursorX, cursorY);
-					rawData.pop_front();
-				}
+				grid.FormatRawData(&rawData);
 				Refresh();
 			}
 		}
@@ -309,27 +186,8 @@ void Terminal::ReSize(wxSizeEvent& event) {
 
 	w.ws_row = newHeight;
 	w.ws_col = newWidth;
-	gridHeight = newHeight; // might not need to set it, since 
-							// the rows of the grid will be growing 
-	gridWidth = newWidth;
 
-	//ResizeRenderGrid(newHeight, newWidth);
-	vector<vector<Cell>> *grid;
-
-	if (altScreen) {
-		grid = &altGrid;
-	} else {	
-		grid = &mainGrid;
-	}	
-	
-	// TODO: correctly resize the screen, it is not enough to just 
-	// resize the grid; i must temporarily save the previous grid; 
-	// resize the grid and correctly handle line wrapping...; as of 
-	// now there is no way for me to distinguish between line breaks
-	// and new lines 
-	int numRows = grid->size();
-//	grid->clear();
-	grid->resize(gridHeight, vector<Cell>(gridWidth));
+	grid.ResizeRenderGrid(newHeight, newWidth);
 
 	ioctl(ptyMaster, TIOCSWINSZ, &w);
 }
