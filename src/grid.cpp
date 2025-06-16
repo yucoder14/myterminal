@@ -3,6 +3,9 @@
 using namespace GRID;
 
 Cell *GRID::Grid::GetGridElement(int row, int col) {
+	if (row >= GetNumRows() || col >= GetNumCols()) {
+		return nullptr;
+	}	
 	return &grid.at(row).at(col);
 }	
 
@@ -62,14 +65,17 @@ void GRID::Grid::DecCursorY() {
 	cursorY --;
 }	
 
-void GRID::Grid::AddNewLine() {
-	IncCursorY(); 
-	if (GetCursorY() == GetNumRows()) {
-		vector<Cell> newline;
-		newline.resize(GetNumCols());
-		grid.push_back(newline);
+void GRID::Grid::IncRowScroll(int numRows) {
+	rowScroll += numRows;
+}	
+
+void GRID::Grid::AddNewLine(bool addScroll) {
+	vector<Cell> newline;
+	newline.resize(GetNumCols());
+	grid.push_back(newline);
+	if (addScroll) {
 		rowScroll++;
-	}
+	}	
 }	
 
 void GRID::Grid::ResizeGrid(int rows, int cols) {

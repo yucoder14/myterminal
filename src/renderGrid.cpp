@@ -46,15 +46,13 @@ void GRID::RenderGrid::ParseAnsiCode(PtyData *ansi) {
 	} else if (str == "H") {
 		MoveRenderCursor(0, 0);
 	} else if (str == "J") {
-		// only temporary to simulate clear behavior... --> this is fucked
-		cout << renderGrid->GetNumRows() << endl;
-//		for (int i = 0; i < gridHeight; i++) {
-//			vector<Cell> newline;
-//			newline.resize(gridWidth);
-//			grid->push_back(newline);
-//			rowScroll += 1;
-//			*cursorY += 1;
-//		}	
+		int numRowsToAdd = (
+				renderGrid->GetCursorY() - renderGrid->GetRowScroll()
+				) % renderGridHeight;
+		renderGrid->IncRowScroll(numRowsToAdd);
+		for (int i = 0; i < numRowsToAdd; i++) {
+			renderGrid->AddNewLine(false);
+		}	
 	} else if (str == "?1049h") {
 		// now the renderGrid should point to altGrid
 		ToggleAltGrid(); 
@@ -73,11 +71,13 @@ void GRID::RenderGrid::SetRenderGridElement(PtyData *data) {
 		case PRINTABLE:
 			renderGrid->SetGridElement(data->keycode);
 			renderGrid->IncCursorX();
-			cout << " " << renderGrid->GetCursorX() << " " << renderGrid->GetNumCols() << endl;
 			if (renderGrid->GetCursorX() == renderGrid->GetNumCols()) {
-				cout << "line wrap" << endl;
 				renderGrid->ZeroCursorX();
-				renderGrid->AddNewLine();
+				renderGrid->IncCursorY(); 
+				if (renderGrid->GetCursorY() == 
+						renderGrid->GetNumRows()) {
+					renderGrid->AddNewLine(true);
+				}
 				renderGrid->SetLineBreak();
 			}	
 			break;
@@ -92,7 +92,11 @@ void GRID::RenderGrid::SetRenderGridElement(PtyData *data) {
 			renderGrid->ZeroCursorX();
 			break;
 		case NEWLINE:
-			renderGrid->AddNewLine(); 
+			renderGrid->IncCursorY(); 
+			if (renderGrid->GetCursorY() == 
+					renderGrid->GetNumRows()) {
+				renderGrid->AddNewLine(true);
+			}
 			break;
 		case ESCAPE:
 			break;

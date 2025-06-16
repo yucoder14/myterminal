@@ -94,14 +94,19 @@ void Terminal::Render(wxPaintEvent& WXUNUSED(event)) {
 	if (gc) {
 		for (int i = 0; i < grid.GetRenderGridHeight(); i++) { 
 			for (auto j = 0; j < grid.GetRenderGridiWidth(); j++) {
+				grid.MoveRenderCursor(i, j);
 				int x, y;
 				
 				x = j * fontWidth;
 				y = i * fontHeight;
-				char keycode = grid.GetRenderGridElement(i, j)->keycode;
+				Cell *cell = grid.GetRenderGridElement(i, j);
 
-				wxUniChar b((int) keycode);
-				dc.DrawText(b, x, y);
+				// only draw if cell exists
+				if (cell != nullptr) {
+					int keycode = cell->keycode;
+					wxUniChar b((int) keycode);
+					dc.DrawText(b, x, y);
+				}	
 			}
 		}
 

@@ -121,7 +121,9 @@ namespace GRID {
 		void DecCursorX();
 		void DecCursorY();
 
-		void AddNewLine();
+		void IncRowScroll(int numRows);
+		
+		void AddNewLine(bool addScroll);
 		void ResizeGrid(int rows, int cols);
 		void ClearGrid();
 	private:
