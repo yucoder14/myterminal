@@ -3,9 +3,9 @@
 using namespace GRID;
 
 Cell *GRID::Grid::GetGridElement(int row, int col) {
-	if (row >= GetNumRows() || col >= GetNumCols()) {
-		return nullptr;
-	}	
+//	if (row >= GetNumRows() || col >= GetNumCols()) {
+//		return nullptr;
+//	}	
 	return &grid.at(row).at(col);
 }	
 

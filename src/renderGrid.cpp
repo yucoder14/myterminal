@@ -1,6 +1,7 @@
 #include "backend.h" 
 
 using namespace GRID;
+
 int GRID::RenderGrid::GetRenderGridHeight() {
 	return renderGridHeight; 
 }	
@@ -48,7 +49,7 @@ void GRID::RenderGrid::ParseAnsiCode(PtyData *ansi) {
 	} else if (str == "J") {
 		int numRowsToAdd = (
 				renderGrid->GetCursorY() - renderGrid->GetRowScroll()
-				) % renderGridHeight;
+			) % renderGridHeight;
 		renderGrid->IncRowScroll(numRowsToAdd);
 		for (int i = 0; i < numRowsToAdd; i++) {
 			renderGrid->AddNewLine(false);
