@@ -44,20 +44,8 @@ public:
 	wxTimer *renderTimer;
 	static constexpr int RenderTimerId = 1114;
 
-	// The Terminal has three jobs: spawning shells, reading from the pty and writing to the screen. 
 	void ReadFromPty(int ptyMaster, deque<PtyData> *rawData);
 	int SpawnShell(int *ptyMaster, int *shellPid, const char * shellPath, char * argv[]);
-
-	// this grid related stuff should not be here
-//	void SetGrid(vector<vector<Cell>> *grid, int *cursorX, int *cursorY);
-//	void SetGrid(Grid *grid); 
-//	void AddNewLine(vector<vector<Cell>> *grid);
-//	void AddNewLine(Grid *grid); --> this should be a grid method, not a terminal method!
-//	void PopulateGrid(PtyData *rawData, vector<vector<Cell>> *grid, int *cursorX, int *cursorY);
-//	void PopulateGrid(PtyData *rawData, Grid *grid);
-//	void Parse(PtyData ansi, vector<vector<Cell>>* grid, int *cursorX, int *cursorY); 
-//	void Parse(PtyData ansi, Grid *grid); --> hopefully, this gets abstracted away 
-//	into its own class (?), knowing how many ansi code there are
 
 	void Render(wxPaintEvent& event);
 	void OnKeyEvent(wxKeyEvent& event);
@@ -73,18 +61,8 @@ private:
 	int shellPid;
 	int shellStatus;
 
+	// Initialize grid
 	RenderGrid grid = RenderGrid(0,0);
-//	Grid mainGrid;
-//	vector<vector<Cell>> mainGrid;
-//	int mainCursorX, mainCursorY;
-//	int gridHeight, gridWidth;
-//	int rowScroll = 0;
-
-	// this is wrong! alt grid should not share the 
-	// height, width and scroll value with the mainGrid!
-//	Grid altGrid;
-//	vector<vector<Cell>> altGrid;
-//	int altCursorX, altCursorY;
 
 	// font related stuff
 	int fontSize;

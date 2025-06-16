@@ -66,6 +66,8 @@ void GRID::Grid::AddNewLine() {
 	vector<Cell> newline;
 	newline.resize(gridWidth);
 	grid.push_back(newline);
+	gridHeight++;	
+
 }	
 
 void GRID::Grid::ResizeGrid(int rows, int cols) {

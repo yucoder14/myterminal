@@ -81,8 +81,11 @@ void GRID::RenderGrid::SetRenderGridElement(PtyData *data) {
 			if (renderGrid->GetCursorX() == renderGrid->GetNumCols()) {
 				renderGrid->ZeroCursorX();
 				renderGrid->IncCursorY();
-				renderGrid->AddNewLine();
-				renderGrid->SetLineBreak();
+				if (renderGrid->GetNumRows() == 
+						renderGrid->GetCursorY()) {
+					renderGrid->AddNewLine();
+					renderGrid->SetLineBreak();
+				}	
 			}	
 			break;
 		case BACKSPACE:
