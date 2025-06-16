@@ -4,9 +4,9 @@
 - [x] figure out how to send/display keystrokes with wxWidgets
 - [x] have a basic framework before I go crazy
 - [x] Correctly send typed keys, and signals (right now it crashes when I do Ctrl-C)
-- [x] Resizing Window
+- [x] Scrolling 
+- [ ] Resizing Window
 - [ ] Render Man page correctly
-- [ ] Scrolling 
 - [ ] handle arrow keys correctly
 - [ ] figure out how to parse
 - [ ] Set up CMake just for kicks
