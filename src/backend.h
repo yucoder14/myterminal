@@ -96,9 +96,8 @@ namespace GRID {
 		Grid(int rows, int cols) {
 			grid.resize(rows, vector<Cell>(cols));
 
-			gridHeight = rows;
-			gridWidth = cols;
-			
+			screenHeight = rows;
+			screenWidth = cols;
 			cursorX = 0;
 			cursorY = 0;
 			rowScroll = 0;
@@ -127,8 +126,8 @@ namespace GRID {
 		void ClearGrid();
 	private:
 		vector<vector<Cell>> grid;	 
-		int gridHeight, gridWidth; 
 		int cursorX, cursorY;
+		int screenHeight, screenWidth;
 		int rowScroll;
 	};	
 

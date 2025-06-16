@@ -19,11 +19,11 @@ int GRID::Grid::GetRowScroll() {
 }	
 
 int GRID::Grid::GetNumRows() {
-	return gridHeight;
+	return grid.size();
 }	
 
 int GRID::Grid::GetNumCols() {
-	return gridWidth;
+	return grid.at(0).size();
 }	
 
 vector<Cell> *GRID::Grid::GetRowAtCursor() {
@@ -63,21 +63,21 @@ void GRID::Grid::DecCursorY() {
 }	
 
 void GRID::Grid::AddNewLine() {
-	vector<Cell> newline;
-	newline.resize(gridWidth);
-	grid.push_back(newline);
-	gridHeight++;	
-
+	IncCursorY(); 
+	if (GetCursorY() == GetNumRows()) {
+		vector<Cell> newline;
+		newline.resize(GetNumCols());
+		grid.push_back(newline);
+		rowScroll++;
+	}
 }	
 
 void GRID::Grid::ResizeGrid(int rows, int cols) {
-	gridHeight = rows;
-	gridWidth = cols;  
 	grid.resize(rows, vector<Cell>(cols));
 }	
 
 void GRID::Grid::ClearGrid() {
 	grid.clear();
-	grid.resize(gridHeight, vector<Cell>(gridWidth));
+	grid.resize(screenHeight, vector<Cell>(screenWidth));
 }	
 

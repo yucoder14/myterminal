@@ -7,12 +7,6 @@ Terminal::Terminal(
 : wxWindow(parent, id, pos, size) {
 	this->SetBackgroundStyle(wxBG_STYLE_PAINT);
 	GetSize(&windowWidth, &windowHeight);
-	// initialize grids and cursors
-	grid.ResizeRenderGrid(windowHeight, windowWidth);	
-	int width, height;
-	grid.GetRenderGridDimensions(&height, &width);
-	cout << width << " " << height << endl;
-	
 	// Set font
 	fontSize = 15;
 	SetFont(wxFont(
@@ -24,6 +18,11 @@ Terminal::Terminal(
 	wxSize dim = GetFont().GetPixelSize();
 	fontHeight = dim.GetHeight();
 	fontWidth = dim.GetWidth();
+
+	// initialize grids and cursors
+	gridHeight = windowHeight / fontHeight;
+	gridWidth = windowWidth / fontWidth;
+	grid.ResizeRenderGrid(gridHeight, gridWidth);	
 
 	// Spawn Shell
 	const char *shellPath = "/bin/bash";

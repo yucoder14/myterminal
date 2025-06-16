@@ -9,15 +9,10 @@ int GRID::RenderGrid::GetRenderGridiWidth() {
 	return renderGridWidth;
 }	
 
-Cell *GRID::RenderGrid::GetRenderGridElement(
-		int renderCursorX, int renderCursorY) {
-	// do some index arithmetics here 
-	int cursorX, cursorY;
+Cell *GRID::RenderGrid::GetRenderGridElement(int row, int col) {
+	int newRow = row + renderGrid->GetRowScroll();
 
-	cursorX = renderCursorX;
-	cursorY = renderCursorY;
-
-	return renderGrid->GetGridElement(cursorX, cursorY);	
+	return renderGrid->GetGridElement(newRow, col);	
 }	
 
 void GRID::RenderGrid::GetRenderGridDimensions(int *height, int *width) {
@@ -78,14 +73,12 @@ void GRID::RenderGrid::SetRenderGridElement(PtyData *data) {
 		case PRINTABLE:
 			renderGrid->SetGridElement(data->keycode);
 			renderGrid->IncCursorX();
+			cout << " " << renderGrid->GetCursorX() << " " << renderGrid->GetNumCols() << endl;
 			if (renderGrid->GetCursorX() == renderGrid->GetNumCols()) {
+				cout << "line wrap" << endl;
 				renderGrid->ZeroCursorX();
-				renderGrid->IncCursorY();
-				if (renderGrid->GetNumRows() == 
-						renderGrid->GetCursorY()) {
-					renderGrid->AddNewLine();
-					renderGrid->SetLineBreak();
-				}	
+				renderGrid->AddNewLine();
+				renderGrid->SetLineBreak();
 			}	
 			break;
 		case BACKSPACE:
@@ -99,12 +92,7 @@ void GRID::RenderGrid::SetRenderGridElement(PtyData *data) {
 			renderGrid->ZeroCursorX();
 			break;
 		case NEWLINE:
-			{ 
-				renderGrid->IncCursorY();
-				if (renderGrid->GetCursorY() == renderGrid->GetNumRows()) {
-					renderGrid->AddNewLine(); 
-				}	
-			}
+			renderGrid->AddNewLine(); 
 			break;
 		case ESCAPE:
 			break;

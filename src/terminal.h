@@ -63,6 +63,7 @@ private:
 
 	// Initialize grid
 	RenderGrid grid = RenderGrid(0,0);
+	int gridHeight, gridWidth;
 
 	// font related stuff
 	int fontSize;
