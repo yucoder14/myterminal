@@ -4,36 +4,10 @@
 #include <deque>
 #include <iostream>
 
+#include "ptyData.h"
+#include "ansi.h"
+
 using namespace std;
-
-/*
-	All the PTY (psuedo terminal) related things reside here. 
-	When terminal reads data from the shell, the data is "tokenized" 
-	and stored in the struct PtyData. Then, the Terminal will relay 
-	this information to the grid to figure out how it's suppose to 
-	format the data, such that it is screen ready.
-*/
-namespace PTY {
-	typedef struct PtyData PtyData;
-
-	enum PtyDataType {
-		PRINTABLE,
-		BACKSPACE,
-		TAB,
-		BELL,
-		CARRAIGE,
-		NEWLINE,
-		ESCAPE,
-		ANSI
-	};
-
-	struct PtyData {
-		enum PtyDataType type; 
-		char keycode;
-		vector<char> ansicode;
-	};
-	void GetPtyData(PtyData *data, char b, vector<char> *tmp, bool *ESC, bool *CSI);
-}
 
 /* 
 	The Grid consists of many Cells. As of now, it is a two dimensional vector
@@ -48,7 +22,7 @@ namespace PTY {
 	can just "read off" of Grid and just draw characters
 */
 namespace GRID {
-	using namespace PTY;
+//	using namespace PTY;
 	typedef struct Cell Cell; 
 	/*
 		For now, the Cell only contains information regarding the keycode and 
@@ -165,7 +139,8 @@ namespace GRID {
 		void ToggleAltGrid();
 
 		// functions related to ansi codes 
-		void EraseScreen(int startingIndex, int endingIndex);
+		void EraseScreen(int arg);
+		void EraseLine(int arg);
 		void ParseAnsiCode(PtyData *ansi);
 
 		void FormatRawData(deque<PtyData> *rawData); 
