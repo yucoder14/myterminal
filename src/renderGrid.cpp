@@ -1,6 +1,7 @@
 #include "backend.h" 
 
 using namespace GRID;
+
 int GRID::RenderGrid::GetRenderGridHeight() {
 	return renderGridHeight; 
 }	
