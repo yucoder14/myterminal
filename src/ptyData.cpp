@@ -1,6 +1,6 @@
-#include "backend.h"
+#include "ptyData.h"
 
-void PTY::GetPtyData(PtyData *data, char b, vector<char> *tmp, bool *ESC, bool *CSI) {
+void GetPtyData(PtyData *data, char b, vector<char> *tmp, bool *ESC, bool *CSI) {
 //	//cout << b;
 	switch (b) {
 		case 7:	// bell
