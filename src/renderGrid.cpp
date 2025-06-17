@@ -11,7 +11,7 @@ int GRID::RenderGrid::GetRenderGridiWidth() {
 }	
 
 Cell *GRID::RenderGrid::GetRenderGridElement(int row, int col) {
-	int newRow = row + renderGrid->GetRowScroll();
+	int newRow = row + renderGrid->GetRowTop();
 
 	return renderGrid->GetGridElement(newRow, col);	
 }	
@@ -24,6 +24,8 @@ void GRID::RenderGrid::GetRenderGridDimensions(int *height, int *width) {
 void GRID::RenderGrid::MoveRenderCursor(int row, int col) {
 	renderCursorX = col; 
 	renderCursorY = row;
+
+	renderGrid->MoveCursor(row, col);	
 }	
 
 void GRID::RenderGrid::ToggleAltGrid() {	 
@@ -34,47 +36,18 @@ void GRID::RenderGrid::ToggleAltGrid() {
 	}	
 }	
 
-void GRID::RenderGrid::ParseAnsiCode(PtyData *ansi) {
-	string str(ansi->ansicode.begin(), ansi->ansicode.end());
-
-	// very basic ... i feel like theses should be function pointers at some point down the line
-	// maybe like a hash table of function pointers ? 
-	if (str=="K") {
-		for (auto colIt = renderGrid->GetRowAtCursor()->begin() + renderGrid->GetCursorX(); 
-				colIt != renderGrid->GetRowAtCursor()->end(); ++colIt) { 
-			colIt->keycode = '\0';
-		}	
-	} else if (str == "H") {
-		MoveRenderCursor(0, 0);
-	} else if (str == "J") {
-		int numRowsToAdd = (
-				renderGrid->GetCursorY() - renderGrid->GetRowScroll()
-			) % renderGridHeight;
-		renderGrid->IncRowScroll(numRowsToAdd);
-		for (int i = 0; i < numRowsToAdd; i++) {
-			renderGrid->AddNewLine(false);
-		}	
-	} else if (str == "?1049h") {
-		// now the renderGrid should point to altGrid
-		ToggleAltGrid(); 
-	} else if (str == "?1049l") {
-		// clear the altGrid 
-		renderGrid->ClearGrid();  
-		// now the renderGrid should point to mainGrid
-		ToggleAltGrid(); 
-//		grid->clear();
-//		grid->resize(gridHeight, vector<Cell>(gridWidth));
-	}
-}	
-
 void GRID::RenderGrid::SetRenderGridElement(PtyData *data) {
+//	cout << "\x1b[H\x1b[J" << "cursor: " << renderCursorX << " " << renderCursorY << endl;
 	switch (data->type) {
 		case PRINTABLE:
 			renderGrid->SetGridElement(data->keycode);
 			renderGrid->IncCursorX();
+			renderCursorX = (renderCursorX + 1) % renderGridWidth;
+
 			if (renderGrid->GetCursorX() == renderGrid->GetNumCols()) {
 				renderGrid->ZeroCursorX();
 				renderGrid->IncCursorY(); 
+				renderCursorY = min(renderGridHeight - 1, ++renderCursorY);
 				if (renderGrid->GetCursorY() == 
 						renderGrid->GetNumRows()) {
 					renderGrid->AddNewLine(true);
@@ -84,6 +57,7 @@ void GRID::RenderGrid::SetRenderGridElement(PtyData *data) {
 			break;
 		case BACKSPACE:
 			renderGrid->DecCursorX();
+			renderCursorX--;
 			break;
 		case TAB:
 			break;
@@ -91,21 +65,23 @@ void GRID::RenderGrid::SetRenderGridElement(PtyData *data) {
 			break;
 		case CARRAIGE:
 			renderGrid->ZeroCursorX();
+			renderCursorX = 0;
 			break;
 		case NEWLINE:
 			renderGrid->IncCursorY(); 
+			renderCursorY = min(renderGridHeight - 1, ++renderCursorY);
 			if (renderGrid->GetCursorY() == 
 					renderGrid->GetNumRows()) {
 				renderGrid->AddNewLine(true);
 			}
 			break;
 		case ESCAPE:
+//			ParseEscapeCode(data);
 			break;
 		case ANSI:
 			ParseAnsiCode(data);
 			break;
 	}
-	
 }	
 
 void GRID::RenderGrid::FormatRawData(deque<PtyData> *rawData) {

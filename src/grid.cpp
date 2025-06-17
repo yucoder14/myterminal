@@ -17,8 +17,8 @@ int GRID::Grid::GetCursorY() {
 	return cursorY;
 }	
 
-int GRID::Grid::GetRowScroll() {
-	return rowScroll;
+int GRID::Grid::GetRowTop() {
+	return rowTop;
 }	
 
 int GRID::Grid::GetNumRows() {
@@ -35,6 +35,10 @@ vector<Cell> *GRID::Grid::GetRowAtCursor() {
 
 void GRID::Grid::SetGridElement(char data) {
 	grid.at(cursorY).at(cursorX).keycode = data;	
+}	
+
+void GRID::Grid::ClearCell(int row, int col) {
+	grid.at(row).at(col).keycode = '\0';
 }	
 
 void GRID::Grid::SetLineBreak() {
@@ -65,16 +69,21 @@ void GRID::Grid::DecCursorY() {
 	cursorY --;
 }	
 
-void GRID::Grid::IncRowScroll(int numRows) {
-	rowScroll += numRows;
+void GRID::Grid::MoveCursor(int row, int col) {
+	cursorX = col;
+	cursorY = row + rowTop;
 }	
 
-void GRID::Grid::AddNewLine(bool addScroll) {
+void GRID::Grid::IncRowTop(int numRows) {
+	rowTop += numRows;
+}	
+
+void GRID::Grid::AddNewLine(bool addTop) {
 	vector<Cell> newline;
 	newline.resize(GetNumCols());
 	grid.push_back(newline);
-	if (addScroll) {
-		rowScroll++;
+	if (addTop) {
+		rowTop++;
 	}	
 }	
 

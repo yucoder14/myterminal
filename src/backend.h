@@ -100,18 +100,19 @@ namespace GRID {
 			screenWidth = cols;
 			cursorX = 0;
 			cursorY = 0;
-			rowScroll = 0;
+			rowTop = 0;
 		}	
 
 		Cell *GetGridElement(int row, int col);
 		int GetCursorX();
 		int GetCursorY();
-		int GetRowScroll();
+		int GetRowTop();
 		int GetNumRows();
 		int GetNumCols();
 		vector<Cell> *GetRowAtCursor();
 
 		void SetGridElement(char data);
+		void ClearCell(int row, int col);
 		void SetLineBreak();
 		
 		void ZeroCursorX();
@@ -120,17 +121,18 @@ namespace GRID {
 		void IncCursorY();
 		void DecCursorX();
 		void DecCursorY();
+		void MoveCursor(int row, int col);
 
-		void IncRowScroll(int numRows);
+		void IncRowTop(int numRows);
 		
-		void AddNewLine(bool addScroll);
+		void AddNewLine(bool addTop);
 		void ResizeGrid(int rows, int cols);
 		void ClearGrid();
 	private:
 		vector<vector<Cell>> grid;	 
 		int cursorX, cursorY;
 		int screenHeight, screenWidth;
-		int rowScroll;
+		int rowTop;
 	};	
 
 	/* 
@@ -161,6 +163,9 @@ namespace GRID {
 
 		void MoveRenderCursor(int row, int col);
 		void ToggleAltGrid();
+
+		// functions related to ansi codes 
+		void EraseScreen(int startingIndex, int endingIndex);
 		void ParseAnsiCode(PtyData *ansi);
 
 		void FormatRawData(deque<PtyData> *rawData); 
