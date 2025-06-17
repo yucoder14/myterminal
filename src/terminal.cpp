@@ -94,7 +94,7 @@ void Terminal::Render(wxPaintEvent& WXUNUSED(event)) {
 	if (gc) {
 		for (int i = 0; i < grid.GetRenderGridHeight(); i++) { 
 			for (auto j = 0; j < grid.GetRenderGridiWidth(); j++) {
-				grid.MoveRenderCursor(i, j);
+//				grid.MoveRenderCursor(i, j);
 				int x, y;
 				
 				x = j * fontWidth;
