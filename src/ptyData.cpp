@@ -1,7 +1,7 @@
 #include "backend.h"
 
 void PTY::GetPtyData(PtyData *data, char b, vector<char> *tmp, bool *ESC, bool *CSI) {
-//	cout << b;
+//	//cout << b;
 	switch (b) {
 		case 7:	// bell
 			data->type = BELL;
@@ -32,7 +32,7 @@ void PTY::GetPtyData(PtyData *data, char b, vector<char> *tmp, bool *ESC, bool *
 					*ESC = false;
 				} else {
 					*ESC = false;
-//					cout << "ESCAPE: " <<  b << endl;
+//					//cout << "ESCAPE: " <<  b << endl;
 					data->type = ESCAPE;
 					data->ansicode.push_back(b);
 				}
@@ -43,7 +43,7 @@ void PTY::GetPtyData(PtyData *data, char b, vector<char> *tmp, bool *ESC, bool *
 					data->type = ANSI;
 					data->ansicode.swap(*tmp);
 					string str(data->ansicode.begin(), data->ansicode.end());
-//					cout << "ANSI CODE: " << str << endl;
+//					//cout << "ANSI CODE: " << str << endl;
 				}
 			} else {
 				cout << b << ", " << (unsigned int)int(b) << endl;

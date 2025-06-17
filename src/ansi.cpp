@@ -2,8 +2,6 @@
 
 void GRID::RenderGrid::EraseScreen(int startingIndex, int endingIndex) {
 	int row, col;
-	startingIndex = renderCursorY * renderGridWidth + renderCursorX;
-	endingIndex = renderGridHeight * renderGridWidth;
 	for (int i = startingIndex; i < endingIndex; i++) {
 		row = i / renderGridWidth + renderGrid->GetRowTop(); 	
 		col = i % renderGridWidth;
