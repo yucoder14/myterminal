@@ -13,7 +13,7 @@ using namespace std;
 	The Grid consists of many Cells, which contain various information about each
 	cell in the grid.
 
-	Grid is what handles cursor movements, scrolling, and other tasks related to 
+	Grid is what handles caret movements, scrolling, and other tasks related to 
 	rendering. Grid should set up its parameters just right, so that the Terminal
 	can just "read off" of Grid and just draw characters
 */
@@ -31,18 +31,18 @@ namespace GRID {
 			grid.resize(rows, vector<Cell>(cols));
 			screenHeight = rows;
 			screenWidth = cols;
-			cursorX = 0;
-			cursorY = 0;
+			caretX = 0;
+			caretY = 0;
 			rowTop = 0;
 		}	
 
 		Cell *GetGridElement(int row, int col);
-		int GetCursorX();
-		int GetCursorY();
+		int GetCaretX();
+		int GetCaretY();
 		int GetRowTop();
 		int GetNumRows();
 		int GetNumCols();
-		vector<Cell> *GetRowAtCursor();
+		vector<Cell> *GetRowAtCaret();
 
 		bool isNull(int row, int col);
 
@@ -50,20 +50,20 @@ namespace GRID {
 		void ClearCell(int row, int col);
 		void SetLineBreak();
 		
-		void ZeroCursorX();
-		void ZeroCursorY();
-		void IncCursorX(int inc);
-		void IncCursorY(int inc);
-		void DecCursorX(int dec);
-		void DecCursorY(int dec);
-		void MoveCursor(int row, int col);
+		void ZeroCaretX();
+		void ZeroCaretY();
+		void IncCaretX(int inc);
+		void IncCaretY(int inc);
+		void DecCaretX(int dec);
+		void DecCaretY(int dec);
+		void MoveCaret(int row, int col);
 
 		void IncRowTop(int numRows);
 		void AddNewLine(bool addTop);
 		void ResizeGrid(int rows, int cols);
 	private:
 		vector<vector<Cell>> grid;	 
-		int cursorX, cursorY;
+		int caretX, caretY;
 		int screenHeight, screenWidth;
 		int rowTop;
 	};	
@@ -74,7 +74,7 @@ namespace GRID {
 		is that this class will get data ("instructions?") from the Terminal 
 		and propagate it to the appropriate grid, which will then do necessary
 		parsing/manipulations
-	  	the renderCursor is what is used to get the elements from Grid's to then 
+	  	the renderCaret is what is used to get the elements from Grid's to then 
 		draw it on the screen 
 	*/
 	class RenderGrid {
@@ -89,10 +89,11 @@ namespace GRID {
 
 		int GetRenderGridHeight();
 		int GetRenderGridiWidth();
-		Cell *GetRenderGridElement(int renderCursorX, int renderCursorY);
+		Cell *GetRenderGridElement(int renderCaretX, int renderCaretY);
 		void GetRenderGridDimensions(int *height, int *width);
+		void GetRenderGridCaret(int *row, int *col);
 
-		void MoveRenderCursor(int row, int col);
+		void MoveRenderCaret(int row, int col);
 		void SetRenderGridElement(PtyData *data);
 		void SetPrintable(PtyData *data);
 		void SetBackspace();
@@ -112,14 +113,14 @@ namespace GRID {
 		void ResizeRenderGrid(int rows, int cols);
 
 	private:
-//		Cursor cursor; --> to indicate where the cursor 
+//		Caret caret; --> to indicate where the caret 
 		Grid mainGrid = Grid(0, 0);
 		Grid altGrid = Grid(0, 0);
 		Grid *renderGrid;
 
 		// these values should be screen coordinates
-		int renderCursorX, renderCursorY;
-		int renderCursorXPrev, renderCursorYPrev;
+		int renderCaretX, renderCaretY;
+		int renderCaretXPrev, renderCaretYPrev;
 		
 		// these values should be values derived from window sizes
 		int renderGridHeight, renderGridWidth;

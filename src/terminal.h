@@ -16,6 +16,7 @@
 #include <wx/unichar.h>
 #include <wx/wx.h>
 #include <wx/timer.h>
+#include <wx/caret.h>
 
 #include <sys/select.h>
 #include <sys/ioctl.h>
@@ -33,7 +34,7 @@ using namespace GRID;
 
 	There are two main components to the terminal: the shell and the grid.
 	Terminal's main job is to just relay information between the shell and 
-	the grid. Any movement of cursors or scrolling is only a consequences of 
+	the grid. Any movement of carets or scrolling is only a consequences of 
 	the information relay. In other words, it is grid's job to decide what
 	to do with the data upon receiving them from the Terminal. --> not finalized,
 	but it sounds like a reasonable design choice.
@@ -48,7 +49,7 @@ public:
 	int SpawnShell(int *ptyMaster, int *shellPid, const char * shellPath, char * argv[]);
 
 	void Render(wxPaintEvent& event);
-	void OnKeyEvent(wxKeyEvent& event);
+	void ProcessKeyPress(wxKeyEvent& event);
 	void Timer(wxTimerEvent& event);
 	void ReSize(wxSizeEvent& event);
 
@@ -64,6 +65,9 @@ private:
 	// Initialize grid
 	RenderGrid grid = RenderGrid(0,0);
 	int gridHeight, gridWidth;
+
+	// Caret
+	wxCaret *caret;
 
 	// font related stuff
 	int fontSize;

@@ -8,12 +8,12 @@ Cell *GRID::Grid::GetGridElement(int row, int col) {
 	return &grid.at(row).at(col);
 }	
 
-int GRID::Grid::GetCursorX() {
-	return cursorX; 
+int GRID::Grid::GetCaretX() {
+	return caretX; 
 }	
 
-int GRID::Grid::GetCursorY() {
-	return cursorY;
+int GRID::Grid::GetCaretY() {
+	return caretY;
 }	
 
 int GRID::Grid::GetRowTop() {
@@ -28,8 +28,8 @@ int GRID::Grid::GetNumCols() {
 	return grid.at(0).size();
 }	
 
-vector<Cell> *GRID::Grid::GetRowAtCursor() {
-	return &grid.at(cursorY);
+vector<Cell> *GRID::Grid::GetRowAtCaret() {
+	return &grid.at(caretY);
 }	
 
 /*** Checkers *********************************************************/
@@ -41,7 +41,7 @@ bool GRID::Grid::isNull(int row, int col) {
 /*** Setters **********************************************************/
 
 void GRID::Grid::SetGridElement(char data) {
-	grid.at(cursorY).at(cursorX).keycode = data;	
+	grid.at(caretY).at(caretX).keycode = data;	
 }	
 
 void GRID::Grid::ClearCell(int row, int col) {
@@ -49,38 +49,38 @@ void GRID::Grid::ClearCell(int row, int col) {
 }	
 
 void GRID::Grid::SetLineBreak() {
-	grid.at(cursorY).at(cursorX).lineBreak = true; 
+	grid.at(caretY).at(caretX).lineBreak = true; 
 }	
 
-/*** Cursor Manipulations *********************************************/
+/*** Caret Manipulations *********************************************/
 
-void GRID::Grid::ZeroCursorX() {
-	cursorX = 0;
+void GRID::Grid::ZeroCaretX() {
+	caretX = 0;
 }	
 
-void GRID::Grid::ZeroCursorY() {
-	cursorY = 0;
+void GRID::Grid::ZeroCaretY() {
+	caretY = 0;
 }	
 
-void GRID::Grid::IncCursorX(int inc) {
-	cursorX += inc;
+void GRID::Grid::IncCaretX(int inc) {
+	caretX += inc;
 }	
 
-void GRID::Grid::IncCursorY(int inc) {
-	cursorY += inc;
+void GRID::Grid::IncCaretY(int inc) {
+	caretY += inc;
 }	
 
-void GRID::Grid::DecCursorX(int dec) {
-	cursorX -= dec;
+void GRID::Grid::DecCaretX(int dec) {
+	caretX -= dec;
 }	
 
-void GRID::Grid::DecCursorY(int dec) {
-	cursorY -= dec;
+void GRID::Grid::DecCaretY(int dec) {
+	caretY -= dec;
 }	
 
-void GRID::Grid::MoveCursor(int row, int col) {
-	cursorX = col;
-	cursorY = row + rowTop;
+void GRID::Grid::MoveCaret(int row, int col) {
+	caretX = col;
+	caretY = row + rowTop;
 }	
 
 /*** Miscellaneous ****************************************************/

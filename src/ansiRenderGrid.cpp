@@ -21,15 +21,15 @@ void GRID::RenderGrid::SetAnsi(PtyData *ansi) {
 	}	
 
 	switch (parsedAnsi.mode) {
-		case 'C': // move cursor # to the right 
+		case 'C': // move caret # to the right 
 			arg = (parsedAnsi.args.empty()) ? 1 : parsedAnsi.args[0];
-			renderGrid->IncCursorX(arg);
-			renderCursorX += arg;		
+			renderGrid->IncCaretX(arg);
+			renderCaretX += arg;		
 			break;
-		case 'H': // move cursor to row #, col #
+		case 'H': // move caret to row #, col #
 			row = (parsedAnsi.args.empty()) ? 0 : parsedAnsi.args[0] - 1;
 			col = (parsedAnsi.args.empty()) ? 0 : parsedAnsi.args[1] - 1;
-			MoveRenderCursor(row, col);
+			MoveRenderCaret(row, col);
 			break;
 		case 'J': // erase display
 			arg = (parsedAnsi.args.empty()) ? 0 :  parsedAnsi.args[0];
@@ -52,13 +52,13 @@ void GRID::RenderGrid::EraseScreen(int arg) {
 	int row, col, startingIndex, endingIndex;
 
 	switch (arg) {
-		case 0: // erase from cursor until end of screen
-			startingIndex = renderCursorY * renderGridWidth + renderCursorX;
+		case 0: // erase from caret until end of screen
+			startingIndex = renderCaretY * renderGridWidth + renderCaretX;
 			endingIndex = renderGridHeight * renderGridWidth;
 			break;
-		case 1: // erase from cursor to beginning of screen
+		case 1: // erase from caret to beginning of screen
 			startingIndex = 0;	
-			endingIndex = renderCursorY * renderGridWidth + renderCursorX;
+			endingIndex = renderCaretY * renderGridWidth + renderCaretX;
 			break;
 		case 2: // erase entire screen
 			startingIndex = 0;	
@@ -81,16 +81,16 @@ void GRID::RenderGrid::EraseScreen(int arg) {
 
 void GRID::RenderGrid::EraseLine(int arg) {
 	int startingIndex, endingIndex, row;
-	row = renderCursorY + renderGrid->GetRowTop();
+	row = renderCaretY + renderGrid->GetRowTop();
 
 	switch (arg) {
-		case 0: // erase from cursor to end of line
-			startingIndex = renderCursorX;
+		case 0: // erase from caret to end of line
+			startingIndex = renderCaretX;
 			endingIndex = renderGridWidth;
 			break;
-		case 1: // erase start of line to the cursor
+		case 1: // erase start of line to the caret
 			startingIndex = 0;
-			endingIndex = renderCursorX;
+			endingIndex = renderCaretX;
 			break;
 		case 2: // erase entire line
 			startingIndex = 0;
@@ -109,8 +109,8 @@ void GRID::RenderGrid::SetPrivateMode(int arg) {
 	switch(arg) { 
 		case 1049: // set alternate screen 
 			renderGrid = &altGrid;
-			renderCursorXPrev = renderCursorX;
-			renderCursorYPrev = renderCursorY;
+			renderCaretXPrev = renderCaretX;
+			renderCaretYPrev = renderCaretY;
 			break;
 		default: 
 			break;
@@ -121,8 +121,8 @@ void GRID::RenderGrid::UnsetPrivateMode(int arg) {
 	switch(arg) { 
 		case 1049: // unset alternate screen 
 			renderGrid = &mainGrid;
-			renderCursorX = renderCursorXPrev;
-			renderCursorY = renderCursorYPrev;
+			renderCaretX = renderCaretXPrev;
+			renderCaretY = renderCaretYPrev;
 			break;
 		default: 
 			break;
@@ -130,16 +130,16 @@ void GRID::RenderGrid::UnsetPrivateMode(int arg) {
 }	
 
 void GRID::RenderGrid::DeleteCharacters(int arg) {
-	int row = renderCursorY;
-	int col = renderGridWidth - 1; 
+	int row = renderCaretY;
+	int col = renderCaretX; 
 
-	while (renderGrid->isNull(row, col)) {
-		col -= 1;
+	while (!renderGrid->isNull(row, col)) {
+		col++;
 	}	
 
-	for (int i = 0; i < arg; i++) {
-		renderGrid->ClearCell(row, col);
-		col -= 1;	
+	for (int i = col - 1; i > col - arg - 1; i--) {
+		cout << "deleting cells: " << row << " " << i << endl;
+		renderGrid->ClearCell(row, i);
 	}	
 }	
 

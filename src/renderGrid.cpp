@@ -22,17 +22,22 @@ void GRID::RenderGrid::GetRenderGridDimensions(int *height, int *width) {
 	*width = renderGrid->GetNumCols();
 }	
 
+void GRID::RenderGrid::GetRenderGridCaret(int *row, int *col) {
+	*row = renderCaretY; 
+	*col = renderCaretX;
+}	
+
 /*** Setters **********************************************************/
 
-void GRID::RenderGrid::MoveRenderCursor(int row, int col) {
-	renderCursorX = col; 
-	renderCursorY = row;
+void GRID::RenderGrid::MoveRenderCaret(int row, int col) {
+	renderCaretX = col; 
+	renderCaretY = row;
 
-	renderGrid->MoveCursor(row, col);	
+	renderGrid->MoveCaret(row, col);	
 }	
 
 void GRID::RenderGrid::SetRenderGridElement(PtyData *data) {
-//	cout << "\x1b[H\x1b[J" << "cursor: " << renderCursorX << " " << renderCursorY << endl;
+//	cout << "\x1b[H\x1b[J" << "caret: " << renderCaretX << " " << renderCaretY << endl;
 	switch (data->type) {
 		case PRINTABLE:
 			SetPrintable(data);
@@ -62,35 +67,39 @@ void GRID::RenderGrid::SetRenderGridElement(PtyData *data) {
 
 void GRID::RenderGrid::SetPrintable(PtyData *data) {
 	renderGrid->SetGridElement(data->keycode);
-	renderGrid->IncCursorX(1);
-	renderCursorX = (renderCursorX + 1) % renderGridWidth;
+	renderGrid->IncCaretX(1);
+	renderCaretX = (renderCaretX + 1) % renderGridWidth;
 
-	if (renderGrid->GetCursorX() == renderGrid->GetNumCols()) {
-		renderGrid->ZeroCursorX();
+	if (renderGrid->GetCaretX() == renderGrid->GetNumCols()) {
+		renderGrid->ZeroCaretX();
 		SetNewline();
 		renderGrid->SetLineBreak();
 	}	
+
+	cout << "Added \"" << data->keycode << "\" at " << renderCaretY << " " << renderCaretX << endl;
 }	
 
 void GRID::RenderGrid::SetBackspace() {
-	renderGrid->DecCursorX(1);
-	renderCursorX--;
+	renderGrid->DecCaretX(1);
+	renderCaretX--;
+	cout << "Backspace" << endl;
 }	
 
 void GRID::RenderGrid::SetTab() {
 	// tab space is 4 for now
-	renderGrid->IncCursorX(4);
+	renderGrid->IncCaretX(4);
 }	
 
 void GRID::RenderGrid::SetCarraige() {
-	renderGrid->ZeroCursorX();
-	renderCursorX = 0;
+	renderGrid->ZeroCaretX();
+	renderCaretX = 0;
+	cout << "Carriage" << endl;
 }	
 
 void GRID::RenderGrid::SetNewline() {
-	renderGrid->IncCursorY(1); 
-	renderCursorY = min(renderGridHeight - 1, ++renderCursorY);
-	if (renderGrid->GetCursorY() == 
+	renderGrid->IncCaretY(1); 
+	renderCaretY = min(renderGridHeight - 1, ++renderCaretY);
+	if (renderGrid->GetCaretY() == 
 			renderGrid->GetNumRows()) {
 		renderGrid->AddNewLine(true);
 	}

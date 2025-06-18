@@ -20,7 +20,7 @@ Terminal::Terminal(
 	cout << fontHeight << endl;
 	fontWidth = dim.GetWidth();
 
-	// initialize grids and cursors
+	// initialize grids and carets
 	gridHeight = windowHeight / fontHeight;
 	gridWidth = windowWidth / fontWidth;
 	grid.ResizeRenderGrid(gridHeight, gridWidth);	
@@ -37,13 +37,13 @@ Terminal::Terminal(
 
 	// Set even handlers
 	this->Bind(wxEVT_PAINT, &Terminal::Render, this);
-	this->Bind(wxEVT_CHAR, &Terminal::OnKeyEvent, this);
+	this->Bind(wxEVT_CHAR, &Terminal::ProcessKeyPress, this);
 	this->Bind(wxEVT_SIZE, &Terminal::ReSize, this);
 
 	// Start renderTimer 
 	renderTimer = new wxTimer(this, RenderTimerId);
 	this->Bind(wxEVT_TIMER, &Terminal::Timer, this);
-	renderTimer->Start(10); // I don't like this
+	renderTimer->Start(1); // I don't like this
 }
 
 /*** Terminal Related Stuff *******************************************/
@@ -83,7 +83,6 @@ void Terminal::ReadFromPty(int ptyMaster, deque<PtyData> *rawData) {
 	}
 }
 
-
 /*** Rendering *******************************************************/
 
 void Terminal::Render(wxPaintEvent& WXUNUSED(event)) {
@@ -95,7 +94,7 @@ void Terminal::Render(wxPaintEvent& WXUNUSED(event)) {
 	if (gc) {
 		for (int i = 0; i < grid.GetRenderGridHeight(); i++) { 
 			for (auto j = 0; j < grid.GetRenderGridiWidth(); j++) {
-//				grid.MoveRenderCursor(i, j);
+//				grid.MoveRenderCaret(i, j);
 				int x, y;
 				
 				x = j * fontWidth;
@@ -114,9 +113,18 @@ void Terminal::Render(wxPaintEvent& WXUNUSED(event)) {
 						dc.SetTextForeground(*wxWHITE);
 					}	
 					dc.DrawText(b, x, y);
+				} else {	
+					break;
 				}	
 			}
 		}
+
+		// manually draw cursor
+		int row, col, x, y;
+		grid.GetRenderGridCaret(&row, &col);	
+		x = col * fontWidth;
+		y = row * fontHeight;
+		dc.DrawRectangle(x, y, fontWidth, fontHeight);
 
 		delete gc;
 	}
@@ -124,51 +132,57 @@ void Terminal::Render(wxPaintEvent& WXUNUSED(event)) {
 
 /*** Event Handling **************************************************/
 
-void Terminal::OnKeyEvent(wxKeyEvent& event) {
-	int keycode = event.GetKeyCode();
-	wxLogStatus("Key Event %d", event.GetKeyCode());
-
+void Terminal::ProcessKeyPress(wxKeyEvent& event) {
 	int size = 0;
 	char out[10]; // this is prone to buffer overflow --> change to vector
 
-	int toErase = 0;
-
-	switch (keycode) {
-		case WXK_CONTROL_C:
-			out[0] = WXK_CONTROL_C;
+	wxChar unicode = event.GetUnicodeKey();
+	if (unicode != WXK_NONE) {
+		if (unicode >= 32) {
+			if (event.GetModifiers() == wxMOD_RAW_CONTROL) {
+				out[0] = unicode - 64;
+			} else {	
+				out[0] = unicode;
+			}	
 			size++;
-			break;
-		case WXK_RETURN:
-			out[0] = WXK_RETURN;
-			size++;
-			break;
-		case WXK_UP:
-			size+=3;
-			strncpy(out, arrowUp, size);
-			break;
-		case WXK_DOWN:
-			size+=3;
-			strncpy(out, arrowDown, size);
-			break;
-		case WXK_RIGHT:
-			size+=3;
-			strncpy(out, arrowRight, size);
-			break;
-		case WXK_LEFT:
-			size+=3;
-			strncpy(out, arrowLeft, size);
-			break;
-		default:
-			out[0] = keycode;
-			size++;
-			break;
-	}
+		} else {
+			 switch(unicode) {
+				 case WXK_TAB:
+					out[0] = WXK_TAB;
+					size++;
+					break;
+				case WXK_RETURN:
+					out[0] = WXK_RETURN;
+					size++;
+					break;
+			}
+		}	
+	} else {	
+		switch(event.GetKeyCode()) {
+			case WXK_UP:
+				size+=3;
+				strncpy(out, arrowUp, size);
+				break;
+			case WXK_DOWN:
+				size+=3;
+				strncpy(out, arrowDown, size);
+				break;
+			case WXK_RIGHT:
+				size+=3;
+				strncpy(out, arrowRight, size);
+				break;
+			case WXK_LEFT:
+				size+=3;
+				strncpy(out, arrowLeft, size);
+				break;
+		}	
+	}	
 
 	write(ptyMaster, &out, (size_t) size);
 }
 
 void Terminal::Timer(wxTimerEvent& event) {
-	int status;
+	int status, row, col;
 	if (waitpid(shellPid, &status, WNOHANG) != shellPid) {
 		fd_set reading;
 		struct timeval timeout;
