@@ -80,7 +80,8 @@ void GRID::RenderGrid::EraseScreen(int arg) {
 }	
 
 void GRID::RenderGrid::EraseLine(int arg) {
-	int startingIndex, endingIndex;
+	int startingIndex, endingIndex, row;
+	row = renderCursorY + renderGrid->GetRowTop();
 
 	switch (arg) {
 		case 0: // erase from cursor to end of line
@@ -100,7 +101,7 @@ void GRID::RenderGrid::EraseLine(int arg) {
 	}	
 
 	for (int i = startingIndex; i < endingIndex; i++) {
-		renderGrid->ClearCell(renderCursorY, i);
+		renderGrid->ClearCell(row, i);
 	}	
 }	
 

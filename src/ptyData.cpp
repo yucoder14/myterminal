@@ -7,7 +7,7 @@ void GetPtyData(PtyData *data, char b, vector<char> *tmp, bool *ESC, bool *CSI) 
 			data->type = BELL;
 			break;
 		case 8:  // backspace
-			cout << "BACKSPACE" << endl;
+//			cout << "BACKSPACE" << endl;
 			data->type = BACKSPACE;
 			break;
 		case 9: // tabspace
@@ -32,7 +32,7 @@ void GetPtyData(PtyData *data, char b, vector<char> *tmp, bool *ESC, bool *CSI) 
 					*ESC = false;
 				} else {
 					*ESC = false;
-					cout << "ESCAPE: " <<  b << endl;
+//					cout << "ESCAPE: " <<  b << endl;
 					data->type = ESCAPE;
 					data->ansicode.push_back(b);
 				}
@@ -43,10 +43,10 @@ void GetPtyData(PtyData *data, char b, vector<char> *tmp, bool *ESC, bool *CSI) 
 					data->type = ANSI;
 					data->ansicode.swap(*tmp);
 					string str(data->ansicode.begin(), data->ansicode.end());
-					cout << "ANSI CODE: " << str << endl;
+//					cout << "ANSI CODE: " << str << endl;
 				}
 			} else {
-				cout << b << ", " << (unsigned int)int(b) << endl;
+//				cout << b << ", " << (unsigned int)int(b) << endl;
 				data->type = PRINTABLE;
 				data->keycode = b;
 			}

@@ -106,6 +106,13 @@ void Terminal::Render(wxPaintEvent& WXUNUSED(event)) {
 				if (cell != nullptr) {
 					int keycode = cell->keycode;
 					wxUniChar b((int) keycode);
+					
+					// for debuggin purposes
+					if (cell->lineBreak) {
+						dc.SetTextForeground(*wxRED);
+					} else {	
+						dc.SetTextForeground(*wxWHITE);
+					}	
 					dc.DrawText(b, x, y);
 				}	
 			}
