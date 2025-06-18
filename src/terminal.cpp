@@ -84,7 +84,7 @@ void Terminal::ReadFromPty(int ptyMaster, deque<PtyData> *rawData) {
 }
 
 
-/*** Rendering and Event Handling ************************************/
+/*** Rendering *******************************************************/
 
 void Terminal::Render(wxPaintEvent& WXUNUSED(event)) {
 	wxPaintDC dc(this);
@@ -114,6 +114,8 @@ void Terminal::Render(wxPaintEvent& WXUNUSED(event)) {
 		delete gc;
 	}
 }
+
+/*** Event Handling **************************************************/
 
 void Terminal::OnKeyEvent(wxKeyEvent& event) {
 	int keycode = event.GetKeyCode();
