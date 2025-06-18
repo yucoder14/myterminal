@@ -56,9 +56,9 @@ void GRID::RenderGrid::EraseLine(int arg) {
 	}	
 }	
 
-void GRID::RenderGrid::PrivateModeSet(int arg) {
+void GRID::RenderGrid::SetPrivateMode(int arg) {
 	switch(arg) { 
-		case 1049: 
+		case 1049: // set alternate screen 
 			renderGrid = &altGrid;
 			renderCursorXPrev = renderCursorX;
 			renderCursorYPrev = renderCursorY;
@@ -68,9 +68,9 @@ void GRID::RenderGrid::PrivateModeSet(int arg) {
 	}	
 }	
 
-void GRID::RenderGrid::PrivateModeUnset(int arg) {
+void GRID::RenderGrid::UnsetPrivateMode(int arg) {
 	switch(arg) { 
-		case 1049: 
+		case 1049: // unset alternate screen 
 			renderGrid = &mainGrid;
 			renderCursorX = renderCursorXPrev;
 			renderCursorY = renderCursorYPrev;
@@ -94,7 +94,7 @@ void GRID::RenderGrid::DeleteCharacters(int arg) {
 	}	
 }	
 
-void GRID::RenderGrid::ParseAnsiCode(PtyData *ansi) {
+void GRID::RenderGrid::SetAnsi(PtyData *ansi) {
 	string str(ansi->ansicode.begin(), ansi->ansicode.end());
 	PANSI parsedAnsi = ParseAnsiString(str); 
 	int arg, row, col;
@@ -103,11 +103,11 @@ void GRID::RenderGrid::ParseAnsiCode(PtyData *ansi) {
 		switch (parsedAnsi.mode) {	
 			case 'h':
 				arg = parsedAnsi.args[0];
-				PrivateModeSet(arg);
+				SetPrivateMode(arg);
 				break;
 			case 'l': 
 				arg = parsedAnsi.args[0];
-				PrivateModeUnset(arg);
+				UnsetPrivateMode(arg);
 				break;
 		}	
 

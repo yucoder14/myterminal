@@ -59,10 +59,8 @@ namespace GRID {
 		void MoveCursor(int row, int col);
 
 		void IncRowTop(int numRows);
-		
 		void AddNewLine(bool addTop);
 		void ResizeGrid(int rows, int cols);
-		void ClearGrid();
 	private:
 		vector<vector<Cell>> grid;	 
 		int cursorX, cursorY;
@@ -94,18 +92,23 @@ namespace GRID {
 		Cell *GetRenderGridElement(int renderCursorX, int renderCursorY);
 		void GetRenderGridDimensions(int *height, int *width);
 
-		void SetRenderGridElement(PtyData *data);
 		void MoveRenderCursor(int row, int col);
+		void SetRenderGridElement(PtyData *data);
+		void SetPrintable(PtyData *data);
+		void SetBackspace();
+		void SetTab();
+		void SetCarraige();
+		void SetNewline();
+		void SetEscape();
 
-		// functions related to ansi codes 
 		void EraseScreen(int arg);
 		void EraseLine(int arg);
-		void PrivateModeSet(int arg);
-		void PrivateModeUnset(int arg);
+		void SetPrivateMode(int arg);
+		void UnsetPrivateMode(int arg);
 		void DeleteCharacters(int arg);
-		void ParseAnsiCode(PtyData *ansi);
-		void FormatRawData(deque<PtyData> *rawData); 
+		void SetAnsi(PtyData *ansi);
 
+		void FormatRawData(deque<PtyData> *rawData); 
 		void ResizeRenderGrid(int rows, int cols);
 
 	private:
