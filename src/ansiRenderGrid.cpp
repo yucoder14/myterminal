@@ -35,15 +35,15 @@ void GRID::RenderGrid::EraseLine(int arg) {
 	int startingIndex, endingIndex;
 
 	switch (arg) {
-		case 0:
+		case 0: // erase from cursor to end of line
 			startingIndex = renderCursorX;
 			endingIndex = renderGridWidth;
 			break;
-		case 1:
+		case 1: // erase start of line to the cursor
 			startingIndex = 0;
 			endingIndex = renderCursorX;
 			break;
-		case 2:
+		case 2: // erase entire line
 			startingIndex = 0;
 			endingIndex = renderGridWidth;
 			break;
@@ -56,6 +56,44 @@ void GRID::RenderGrid::EraseLine(int arg) {
 	}	
 }	
 
+void GRID::RenderGrid::PrivateModeH(int arg) {
+	switch(arg) { 
+		case 1049: 
+			renderGrid = &altGrid;
+			break;
+		default: 
+			break;
+	}	
+}	
+
+void GRID::RenderGrid::PrivateModeL(int arg) {
+	switch(arg) { 
+		case 1049: 
+			// i also need to separate the renderCursor 
+			// right now, because single cursor is used, 
+			// there is no way to remember main screen's 
+			// cursor upon switching to alt screen. 
+			renderGrid = &mainGrid;
+			break;
+		default: 
+			break;
+	}	
+}	
+
+void GRID::RenderGrid::DeleteCharacters(int arg) {
+	int row = renderCursorY;
+	int col = renderGridWidth - 1; 
+
+	while (renderGrid->isNull(row, col)) {
+		col -= 1;
+	}	
+
+	for (int i = 0; i < arg; i++) {
+		renderGrid->ClearCell(row, col);
+		col -= 1;	
+	}	
+}	
+
 void GRID::RenderGrid::ParseAnsiCode(PtyData *ansi) {
 	string str(ansi->ansicode.begin(), ansi->ansicode.end());
 	PANSI parsedAnsi = ParseAnsiString(str); 
@@ -64,12 +102,12 @@ void GRID::RenderGrid::ParseAnsiCode(PtyData *ansi) {
 	if (parsedAnsi.privateMode) {
 		switch (parsedAnsi.mode) {	
 			case 'h':
-				cout << parsedAnsi.args[0] << endl;
-				//PrivateModeH(arg);
+				arg = parsedAnsi.args[0];
+				PrivateModeH(arg);
 				break;
 			case 'l': 
-				cout << parsedAnsi.args[0] << endl;
-				//PrivateModeL(arg);
+				arg = parsedAnsi.args[0];
+				PrivateModeL(arg);
 				break;
 		}	
 
@@ -77,13 +115,14 @@ void GRID::RenderGrid::ParseAnsiCode(PtyData *ansi) {
 	}	
 
 	switch (parsedAnsi.mode) {
-		case 'C': // move cursor to the right 
-			renderGrid->IncCursorX();
-			renderCursorX++;		
+		case 'C': // move cursor # to the right 
+			arg = (parsedAnsi.args.empty()) ? 1 : parsedAnsi.args[0];
+			renderGrid->IncCursorX(arg);
+			renderCursorX += arg;		
 			break;
 		case 'H': // move cursor to row #, col #
-			row = (parsedAnsi.args.empty()) ? 0 : parsedAnsi.args[0];
-			col = (parsedAnsi.args.empty()) ? 0 : parsedAnsi.args[1];
+			row = (parsedAnsi.args.empty()) ? 0 : parsedAnsi.args[0] - 1;
+			col = (parsedAnsi.args.empty()) ? 0 : parsedAnsi.args[1] - 1;
 			MoveRenderCursor(row, col);
 			break;
 		case 'J': // erase display
@@ -94,15 +133,9 @@ void GRID::RenderGrid::ParseAnsiCode(PtyData *ansi) {
 			arg = (parsedAnsi.args.empty()) ? 0 :  parsedAnsi.args[0];
 			EraseLine(arg);
 			break;
+		case 'P': // delete # characters from right to left
+			arg = (parsedAnsi.args.empty()) ? 0 :  parsedAnsi.args[0];
+			DeleteCharacters(arg);
+			break;
 	}	
-
-	if (str == "?1049h") {
-		// now the renderGrid should point to altGrid
-		ToggleAltGrid(); 
-	} else if (str == "?1049l") {
-		// clear the altGrid 
-		renderGrid->ClearGrid(); // this crashes?  
-		// now the renderGrid should point to mainGrid
-		ToggleAltGrid(); 
-	}
 }	

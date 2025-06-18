@@ -17,6 +17,7 @@ Terminal::Terminal(
 	));
 	wxSize dim = GetFont().GetPixelSize();
 	fontHeight = dim.GetHeight();
+	cout << fontHeight << endl;
 	fontWidth = dim.GetWidth();
 
 	// initialize grids and cursors

@@ -33,6 +33,10 @@ vector<Cell> *GRID::Grid::GetRowAtCursor() {
 	return &grid.at(cursorY);
 }	
 
+bool GRID::Grid::isNull(int row, int col) {
+	return grid.at(row).at(col).keycode == '\0';
+}	
+
 void GRID::Grid::SetGridElement(char data) {
 	grid.at(cursorY).at(cursorX).keycode = data;	
 }	
@@ -53,20 +57,20 @@ void GRID::Grid::ZeroCursorY() {
 	cursorY = 0;
 }	
 
-void GRID::Grid::IncCursorX() {
-	cursorX ++;
+void GRID::Grid::IncCursorX(int inc) {
+	cursorX += inc;
 }	
 
-void GRID::Grid::IncCursorY() {
-	cursorY ++;
+void GRID::Grid::IncCursorY(int inc) {
+	cursorY += inc;
 }	
 
-void GRID::Grid::DecCursorX() {
-	cursorX --;
+void GRID::Grid::DecCursorX(int dec) {
+	cursorX -= dec;
 }	
 
-void GRID::Grid::DecCursorY() {
-	cursorY --;
+void GRID::Grid::DecCursorY(int dec) {
+	cursorY -= dec;
 }	
 
 void GRID::Grid::MoveCursor(int row, int col) {

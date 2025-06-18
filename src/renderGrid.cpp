@@ -28,25 +28,17 @@ void GRID::RenderGrid::MoveRenderCursor(int row, int col) {
 	renderGrid->MoveCursor(row, col);	
 }	
 
-void GRID::RenderGrid::ToggleAltGrid() {	 
-	if (renderGrid == &mainGrid) {
-		renderGrid = &altGrid;
-	} else {	
-		renderGrid = &mainGrid;
-	}	
-}	
-
 void GRID::RenderGrid::SetRenderGridElement(PtyData *data) {
 //	cout << "\x1b[H\x1b[J" << "cursor: " << renderCursorX << " " << renderCursorY << endl;
 	switch (data->type) {
 		case PRINTABLE:
 			renderGrid->SetGridElement(data->keycode);
-			renderGrid->IncCursorX();
+			renderGrid->IncCursorX(1);
 			renderCursorX = (renderCursorX + 1) % renderGridWidth;
 
 			if (renderGrid->GetCursorX() == renderGrid->GetNumCols()) {
 				renderGrid->ZeroCursorX();
-				renderGrid->IncCursorY(); 
+				renderGrid->IncCursorY(1); 
 				renderCursorY = min(renderGridHeight - 1, ++renderCursorY);
 				if (renderGrid->GetCursorY() == 
 						renderGrid->GetNumRows()) {
@@ -56,7 +48,7 @@ void GRID::RenderGrid::SetRenderGridElement(PtyData *data) {
 			}	
 			break;
 		case BACKSPACE:
-			renderGrid->DecCursorX();
+			renderGrid->DecCursorX(1);
 			renderCursorX--;
 			break;
 		case TAB:
@@ -68,7 +60,7 @@ void GRID::RenderGrid::SetRenderGridElement(PtyData *data) {
 			renderCursorX = 0;
 			break;
 		case NEWLINE:
-			renderGrid->IncCursorY(); 
+			renderGrid->IncCursorY(1); 
 			renderCursorY = min(renderGridHeight - 1, ++renderCursorY);
 			if (renderGrid->GetCursorY() == 
 					renderGrid->GetNumRows()) {
