@@ -56,24 +56,24 @@ void GRID::RenderGrid::EraseLine(int arg) {
 	}	
 }	
 
-void GRID::RenderGrid::PrivateModeH(int arg) {
+void GRID::RenderGrid::PrivateModeSet(int arg) {
 	switch(arg) { 
 		case 1049: 
 			renderGrid = &altGrid;
+			renderCursorXPrev = renderCursorX;
+			renderCursorYPrev = renderCursorY;
 			break;
 		default: 
 			break;
 	}	
 }	
 
-void GRID::RenderGrid::PrivateModeL(int arg) {
+void GRID::RenderGrid::PrivateModeUnset(int arg) {
 	switch(arg) { 
 		case 1049: 
-			// i also need to separate the renderCursor 
-			// right now, because single cursor is used, 
-			// there is no way to remember main screen's 
-			// cursor upon switching to alt screen. 
 			renderGrid = &mainGrid;
+			renderCursorX = renderCursorXPrev;
+			renderCursorY = renderCursorYPrev;
 			break;
 		default: 
 			break;
@@ -103,11 +103,11 @@ void GRID::RenderGrid::ParseAnsiCode(PtyData *ansi) {
 		switch (parsedAnsi.mode) {	
 			case 'h':
 				arg = parsedAnsi.args[0];
-				PrivateModeH(arg);
+				PrivateModeSet(arg);
 				break;
 			case 'l': 
 				arg = parsedAnsi.args[0];
-				PrivateModeL(arg);
+				PrivateModeUnset(arg);
 				break;
 		}	
 
