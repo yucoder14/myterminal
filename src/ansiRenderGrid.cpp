@@ -1,5 +1,53 @@
 #include "backend.h"
 
+void GRID::RenderGrid::SetAnsi(PtyData *ansi) {
+	string str(ansi->ansicode.begin(), ansi->ansicode.end());
+	PANSI parsedAnsi = ParseAnsiString(str); 
+	int arg, row, col;
+
+	if (parsedAnsi.privateMode) {
+		switch (parsedAnsi.mode) {	
+			case 'h':
+				arg = parsedAnsi.args[0];
+				SetPrivateMode(arg);
+				break;
+			case 'l': 
+				arg = parsedAnsi.args[0];
+				UnsetPrivateMode(arg);
+				break;
+		}	
+
+		return;
+	}	
+
+	switch (parsedAnsi.mode) {
+		case 'C': // move cursor # to the right 
+			arg = (parsedAnsi.args.empty()) ? 1 : parsedAnsi.args[0];
+			renderGrid->IncCursorX(arg);
+			renderCursorX += arg;		
+			break;
+		case 'H': // move cursor to row #, col #
+			row = (parsedAnsi.args.empty()) ? 0 : parsedAnsi.args[0] - 1;
+			col = (parsedAnsi.args.empty()) ? 0 : parsedAnsi.args[1] - 1;
+			MoveRenderCursor(row, col);
+			break;
+		case 'J': // erase display
+			arg = (parsedAnsi.args.empty()) ? 0 :  parsedAnsi.args[0];
+			EraseScreen(arg);
+			break;
+		case 'K': // erase line 
+			arg = (parsedAnsi.args.empty()) ? 0 :  parsedAnsi.args[0];
+			EraseLine(arg);
+			break;
+		case 'P': // delete # characters from right to left
+			arg = (parsedAnsi.args.empty()) ? 0 :  parsedAnsi.args[0];
+			DeleteCharacters(arg);
+			break;
+	}	
+}	
+
+/*** Helper Functions *************************************************/
+
 void GRID::RenderGrid::EraseScreen(int arg) {
 	int row, col, startingIndex, endingIndex;
 
@@ -35,15 +83,15 @@ void GRID::RenderGrid::EraseLine(int arg) {
 	int startingIndex, endingIndex;
 
 	switch (arg) {
-		case 0:
+		case 0: // erase from cursor to end of line
 			startingIndex = renderCursorX;
 			endingIndex = renderGridWidth;
 			break;
-		case 1:
+		case 1: // erase start of line to the cursor
 			startingIndex = 0;
 			endingIndex = renderCursorX;
 			break;
-		case 2:
+		case 2: // erase entire line
 			startingIndex = 0;
 			endingIndex = renderGridWidth;
 			break;
@@ -56,53 +104,41 @@ void GRID::RenderGrid::EraseLine(int arg) {
 	}	
 }	
 
-void GRID::RenderGrid::ParseAnsiCode(PtyData *ansi) {
-	string str(ansi->ansicode.begin(), ansi->ansicode.end());
-	PANSI parsedAnsi = ParseAnsiString(str); 
-	int arg, row, col;
-
-	if (parsedAnsi.privateMode) {
-		switch (parsedAnsi.mode) {	
-			case 'h':
-				cout << parsedAnsi.args[0] << endl;
-				//PrivateModeH(arg);
-				break;
-			case 'l': 
-				cout << parsedAnsi.args[0] << endl;
-				//PrivateModeL(arg);
-				break;
-		}	
-
-		return;
-	}	
-
-	switch (parsedAnsi.mode) {
-		case 'C': // move cursor to the right 
-			renderGrid->IncCursorX();
-			renderCursorX++;		
+void GRID::RenderGrid::SetPrivateMode(int arg) {
+	switch(arg) { 
+		case 1049: // set alternate screen 
+			renderGrid = &altGrid;
+			renderCursorXPrev = renderCursorX;
+			renderCursorYPrev = renderCursorY;
 			break;
-		case 'H': // move cursor to row #, col #
-			row = (parsedAnsi.args.empty()) ? 0 : parsedAnsi.args[0];
-			col = (parsedAnsi.args.empty()) ? 0 : parsedAnsi.args[1];
-			MoveRenderCursor(row, col);
-			break;
-		case 'J': // erase display
-			arg = (parsedAnsi.args.empty()) ? 0 :  parsedAnsi.args[0];
-			EraseScreen(arg);
-			break;
-		case 'K': // erase line 
-			arg = (parsedAnsi.args.empty()) ? 0 :  parsedAnsi.args[0];
-			EraseLine(arg);
+		default: 
 			break;
 	}	
-
-	if (str == "?1049h") {
-		// now the renderGrid should point to altGrid
-		ToggleAltGrid(); 
-	} else if (str == "?1049l") {
-		// clear the altGrid 
-		renderGrid->ClearGrid(); // this crashes?  
-		// now the renderGrid should point to mainGrid
-		ToggleAltGrid(); 
-	}
 }	
+
+void GRID::RenderGrid::UnsetPrivateMode(int arg) {
+	switch(arg) { 
+		case 1049: // unset alternate screen 
+			renderGrid = &mainGrid;
+			renderCursorX = renderCursorXPrev;
+			renderCursorY = renderCursorYPrev;
+			break;
+		default: 
+			break;
+	}	
+}	
+
+void GRID::RenderGrid::DeleteCharacters(int arg) {
+	int row = renderCursorY;
+	int col = renderGridWidth - 1; 
+
+	while (renderGrid->isNull(row, col)) {
+		col -= 1;
+	}	
+
+	for (int i = 0; i < arg; i++) {
+		renderGrid->ClearCell(row, col);
+		col -= 1;	
+	}	
+}	
+

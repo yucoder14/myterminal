@@ -17,6 +17,7 @@ Terminal::Terminal(
 	));
 	wxSize dim = GetFont().GetPixelSize();
 	fontHeight = dim.GetHeight();
+	cout << fontHeight << endl;
 	fontWidth = dim.GetWidth();
 
 	// initialize grids and cursors
@@ -83,7 +84,7 @@ void Terminal::ReadFromPty(int ptyMaster, deque<PtyData> *rawData) {
 }
 
 
-/*** Rendering and Event Handling ************************************/
+/*** Rendering *******************************************************/
 
 void Terminal::Render(wxPaintEvent& WXUNUSED(event)) {
 	wxPaintDC dc(this);
@@ -113,6 +114,8 @@ void Terminal::Render(wxPaintEvent& WXUNUSED(event)) {
 		delete gc;
 	}
 }
+
+/*** Event Handling **************************************************/
 
 void Terminal::OnKeyEvent(wxKeyEvent& event) {
 	int keycode = event.GetKeyCode();

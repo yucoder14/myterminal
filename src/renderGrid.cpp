@@ -2,6 +2,7 @@
 
 using namespace GRID;
 
+/*** Getters **********************************************************/
 int GRID::RenderGrid::GetRenderGridHeight() {
 	return renderGridHeight; 
 }	
@@ -21,6 +22,8 @@ void GRID::RenderGrid::GetRenderGridDimensions(int *height, int *width) {
 	*width = renderGrid->GetNumCols();
 }	
 
+/*** Setters **********************************************************/
+
 void GRID::RenderGrid::MoveRenderCursor(int row, int col) {
 	renderCursorX = col; 
 	renderCursorY = row;
@@ -28,61 +31,72 @@ void GRID::RenderGrid::MoveRenderCursor(int row, int col) {
 	renderGrid->MoveCursor(row, col);	
 }	
 
-void GRID::RenderGrid::ToggleAltGrid() {	 
-	if (renderGrid == &mainGrid) {
-		renderGrid = &altGrid;
-	} else {	
-		renderGrid = &mainGrid;
-	}	
-}	
-
 void GRID::RenderGrid::SetRenderGridElement(PtyData *data) {
 //	cout << "\x1b[H\x1b[J" << "cursor: " << renderCursorX << " " << renderCursorY << endl;
 	switch (data->type) {
 		case PRINTABLE:
-			renderGrid->SetGridElement(data->keycode);
-			renderGrid->IncCursorX();
-			renderCursorX = (renderCursorX + 1) % renderGridWidth;
-
-			if (renderGrid->GetCursorX() == renderGrid->GetNumCols()) {
-				renderGrid->ZeroCursorX();
-				renderGrid->IncCursorY(); 
-				renderCursorY = min(renderGridHeight - 1, ++renderCursorY);
-				if (renderGrid->GetCursorY() == 
-						renderGrid->GetNumRows()) {
-					renderGrid->AddNewLine(true);
-				}
-				renderGrid->SetLineBreak();
-			}	
+			SetPrintable(data);
 			break;
 		case BACKSPACE:
-			renderGrid->DecCursorX();
-			renderCursorX--;
+			SetBackspace();
 			break;
 		case TAB:
+			SetTab();
 			break;
 		case BELL:
 			break;
 		case CARRAIGE:
-			renderGrid->ZeroCursorX();
-			renderCursorX = 0;
+			SetCarraige();
 			break;
 		case NEWLINE:
-			renderGrid->IncCursorY(); 
-			renderCursorY = min(renderGridHeight - 1, ++renderCursorY);
-			if (renderGrid->GetCursorY() == 
-					renderGrid->GetNumRows()) {
-				renderGrid->AddNewLine(true);
-			}
+			SetNewline();
 			break;
 		case ESCAPE:
 //			ParseEscapeCode(data);
 			break;
 		case ANSI:
-			ParseAnsiCode(data);
+			SetAnsi(data);
 			break;
 	}
 }	
+
+void GRID::RenderGrid::SetPrintable(PtyData *data) {
+	renderGrid->SetGridElement(data->keycode);
+	renderGrid->IncCursorX(1);
+	renderCursorX = (renderCursorX + 1) % renderGridWidth;
+
+	if (renderGrid->GetCursorX() == renderGrid->GetNumCols()) {
+		renderGrid->ZeroCursorX();
+		SetNewline();
+		renderGrid->SetLineBreak();
+	}	
+}	
+
+void GRID::RenderGrid::SetBackspace() {
+	renderGrid->DecCursorX(1);
+	renderCursorX--;
+}	
+
+void GRID::RenderGrid::SetTab() {
+	// tab space is 4 for now
+	renderGrid->IncCursorX(4);
+}	
+
+void GRID::RenderGrid::SetCarraige() {
+	renderGrid->ZeroCursorX();
+	renderCursorX = 0;
+}	
+
+void GRID::RenderGrid::SetNewline() {
+	renderGrid->IncCursorY(1); 
+	renderCursorY = min(renderGridHeight - 1, ++renderCursorY);
+	if (renderGrid->GetCursorY() == 
+			renderGrid->GetNumRows()) {
+		renderGrid->AddNewLine(true);
+	}
+}	
+
+/*** Miscellaneous ****************************************************/
 
 void GRID::RenderGrid::FormatRawData(deque<PtyData> *rawData) {
 	while (!rawData->empty()) {

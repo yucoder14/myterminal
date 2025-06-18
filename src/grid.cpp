@@ -2,10 +2,9 @@
 
 using namespace GRID;
 
+/*** Getters **********************************************************/
+
 Cell *GRID::Grid::GetGridElement(int row, int col) {
-//	if (row >= GetNumRows() || col >= GetNumCols()) {
-//		return nullptr;
-//	}	
 	return &grid.at(row).at(col);
 }	
 
@@ -33,6 +32,14 @@ vector<Cell> *GRID::Grid::GetRowAtCursor() {
 	return &grid.at(cursorY);
 }	
 
+/*** Checkers *********************************************************/
+
+bool GRID::Grid::isNull(int row, int col) {
+	return grid.at(row).at(col).keycode == '\0';
+}	
+
+/*** Setters **********************************************************/
+
 void GRID::Grid::SetGridElement(char data) {
 	grid.at(cursorY).at(cursorX).keycode = data;	
 }	
@@ -45,6 +52,8 @@ void GRID::Grid::SetLineBreak() {
 	grid.at(cursorY).at(cursorX).lineBreak = true; 
 }	
 
+/*** Cursor Manipulations *********************************************/
+
 void GRID::Grid::ZeroCursorX() {
 	cursorX = 0;
 }	
@@ -53,26 +62,28 @@ void GRID::Grid::ZeroCursorY() {
 	cursorY = 0;
 }	
 
-void GRID::Grid::IncCursorX() {
-	cursorX ++;
+void GRID::Grid::IncCursorX(int inc) {
+	cursorX += inc;
 }	
 
-void GRID::Grid::IncCursorY() {
-	cursorY ++;
+void GRID::Grid::IncCursorY(int inc) {
+	cursorY += inc;
 }	
 
-void GRID::Grid::DecCursorX() {
-	cursorX --;
+void GRID::Grid::DecCursorX(int dec) {
+	cursorX -= dec;
 }	
 
-void GRID::Grid::DecCursorY() {
-	cursorY --;
+void GRID::Grid::DecCursorY(int dec) {
+	cursorY -= dec;
 }	
 
 void GRID::Grid::MoveCursor(int row, int col) {
 	cursorX = col;
 	cursorY = row + rowTop;
 }	
+
+/*** Miscellaneous ****************************************************/
 
 void GRID::Grid::IncRowTop(int numRows) {
 	rowTop += numRows;
@@ -87,12 +98,7 @@ void GRID::Grid::AddNewLine(bool addTop) {
 	}	
 }	
 
+// TODO: Implement this
 void GRID::Grid::ResizeGrid(int rows, int cols) {
 	grid.resize(rows, vector<Cell>(cols));
 }	
-
-void GRID::Grid::ClearGrid() {
-	grid.clear();
-	grid.resize(screenHeight, vector<Cell>(screenWidth));
-}	
-
