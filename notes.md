@@ -114,3 +114,5 @@ Problems
 ========
 CR in middle of input (when the input length is bigger than the allotted terminal window, shell prints a CR) causes bugs 
 Cannot correctly handle ← and → keys
+
+testing
