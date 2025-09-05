@@ -1,47 +1,56 @@
 #include "ptyData.h"
 
 void GetPtyData(PtyData *data, char b, vector<char> *tmp, bool *ESC, bool *CSI) {
+//	cout << "RAW: " << int(b) << "->" <<  char(b) << endl;
 	switch (b) {
-		case 7:	// bell
+		case BELL_CHAR:	
 			data->type = BELL;
 			break;
-		case 8:  // backspace
+		case BACKSPACE_CHAR:  
 			data->type = BACKSPACE;
+			//cout << "BACKSPACE" << endl;
 			break;
-		case 9: // tabspace
+		case TAB_CHAR: 
 			data->type = TAB;
+			//cout << "TAB" << endl;
 			break;
-		case 10: // newline
+		case NEWLINE_CHAR: 
 			data->type = NEWLINE;
+			//cout << "NEWLINE" << endl;
 			break;
-		case 13: // carriage return
+		case CARRAIGE_CHAR:
 			data->type = CARRAIGE;
+			//cout << "CARRAIGE" << endl;
 			break;
-		case 27: // escape
+		case ESCAPE_CHAR: 
 			*ESC = true;
 			break;
 		default:
 			if (*ESC) {
 				if (b == '[') {
-					*CSI = true;;
+					*CSI = true;
 					*ESC = false;
 				} else {
 					*ESC = false;
 					data->type = ESCAPE;
 					data->ansicode.push_back(b);
+					//cout << "ESCAPE: " << b << endl;
 				}
 			} else if (*CSI) {
 				tmp->push_back(b);
 				// ansi code terminators
-				if (isalpha(b) || b == '@') {
+				if (isalpha(static_cast<unsigned char>(b)) || b == '@') {
 					*CSI = false;
 					data->type = ANSI;
 					data->ansicode.swap(*tmp);
-					string str(data->ansicode.begin(), data->ansicode.end());
+					tmp->clear();
+//					string str(data->ansicode.begin(), data->ansicode.end());
+//					cout << "ANSI: " << str << endl;
 				}
 			} else {
 				data->type = PRINTABLE;
 				data->keycode = b;
+//					cout << "PRINTABLE: " << char(b) << endl;
 			}
 			break;
 	}

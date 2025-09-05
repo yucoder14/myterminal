@@ -5,8 +5,11 @@
 Terminal::Terminal(
 		wxWindow *parent, wxWindowID id, const wxPoint &pos, const wxSize &size)
 : wxWindow(parent, id, pos, size) {
-	this->SetBackgroundStyle(wxBG_STYLE_PAINT);
+
+	SetBackgroundStyle(wxBG_STYLE_PAINT);
+	SetBackgroundColour(*wxBLACK);
 	GetSize(&windowWidth, &windowHeight);
+
 	// Set font
 	fontSize = 15;
 	SetFont(wxFont(
@@ -17,7 +20,6 @@ Terminal::Terminal(
 	));
 	wxSize dim = GetFont().GetPixelSize();
 	fontHeight = dim.GetHeight();
-	cout << fontHeight << endl;
 	fontWidth = dim.GetWidth();
 
 	// initialize grids and carets
@@ -94,7 +96,6 @@ void Terminal::Render(wxPaintEvent& WXUNUSED(event)) {
 	if (gc) {
 		for (int i = 0; i < grid.GetRenderGridHeight(); i++) { 
 			for (auto j = 0; j < grid.GetRenderGridiWidth(); j++) {
-//				grid.MoveRenderCaret(i, j);
 				int x, y;
 				
 				x = j * fontWidth;

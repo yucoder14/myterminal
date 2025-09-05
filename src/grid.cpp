@@ -45,6 +45,7 @@ void GRID::Grid::SetGridElement(char data) {
 }	
 
 void GRID::Grid::ClearCell(int row, int col) {
+	grid.at(row).at(col).lineBreak = false;
 	grid.at(row).at(col).keycode = '\0';
 }	
 

@@ -3,6 +3,14 @@
 #include <iostream>
 
 using namespace std;
+
+constexpr char BELL_CHAR = 7;
+constexpr char BACKSPACE_CHAR = 8;
+constexpr char TAB_CHAR = 9;
+constexpr char NEWLINE_CHAR = 10;
+constexpr char CARRAIGE_CHAR = 13;
+constexpr char ESCAPE_CHAR = 27;
+
 /*
 	All the PTY (psuedo terminal) related things reside here. 
 	When terminal reads data from the shell, the data is "tokenized" 

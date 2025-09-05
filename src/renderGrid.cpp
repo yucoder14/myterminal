@@ -37,7 +37,6 @@ void GRID::RenderGrid::MoveRenderCaret(int row, int col) {
 }	
 
 void GRID::RenderGrid::SetRenderGridElement(PtyData *data) {
-//	cout << "\x1b[H\x1b[J" << "caret: " << renderCaretX << " " << renderCaretY << endl;
 	switch (data->type) {
 		case PRINTABLE:
 			SetPrintable(data);
@@ -75,14 +74,11 @@ void GRID::RenderGrid::SetPrintable(PtyData *data) {
 		SetNewline();
 		renderGrid->SetLineBreak();
 	}	
-
-	cout << "Added \"" << data->keycode << "\" at " << renderCaretY << " " << renderCaretX << endl;
 }	
 
 void GRID::RenderGrid::SetBackspace() {
 	renderGrid->DecCaretX(1);
 	renderCaretX--;
-	cout << "Backspace" << endl;
 }	
 
 void GRID::RenderGrid::SetTab() {
@@ -93,7 +89,6 @@ void GRID::RenderGrid::SetTab() {
 void GRID::RenderGrid::SetCarraige() {
 	renderGrid->ZeroCaretX();
 	renderCaretX = 0;
-	cout << "Carriage" << endl;
 }	
 
 void GRID::RenderGrid::SetNewline() {
